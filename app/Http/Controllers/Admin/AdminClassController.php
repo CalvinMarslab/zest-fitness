@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\GymClass;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Inertia\Inertia;
+use Inertia\Response;
+
+class AdminClassController extends Controller
+{
+    public function index(): Response
+    {
+        $classes = GymClass::withCount('bookings')
+            ->orderBy('start_time', 'desc')
+            ->get();
+
+        return Inertia::render('Admin/Classes', ['classes' => $classes]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $base = $request->validate([
+            'name'      => 'required|string|max:255',
+            'coach'     => 'required|string|max:255',
+            'capacity'  => 'required|integer|min:1|max:100',
+            'recurring' => 'required|boolean',
+        ]);
+
+        if (! $base['recurring']) {
+            // ── Single class ─────────────────────────────────────────────────
+            $data = $request->validate(['start_time' => 'required|date']);
+            GymClass::create([...$base, 'start_time' => $data['start_time'], 'recurring' => false]);
+        } else {
+            // ── Recurring schedule ───────────────────────────────────────────
+            $data = $request->validate([
+                'days'       => 'required|array|min:1',   // [0=Sun…6=Sat]
+                'days.*'     => 'integer|between:0,6',
+                'start_hour' => 'required|string',        // "HH:MM"
+                'end_hour'   => 'required|string',        // "HH:MM"
+                'weeks'      => 'required|integer|min:1|max:52',
+            ]);
+
+            [$sh, $sm] = explode(':', $data['start_hour']);
+            [$eh, $em] = explode(':', $data['end_hour']);
+
+            $today   = Carbon::today();
+            $endDate = $today->copy()->addWeeks((int) $data['weeks']);
+            $classes = [];
+
+            for ($d = $today->copy(); $d->lt($endDate); $d->addDay()) {
+                if (in_array($d->dayOfWeek, $data['days'])) {
+                    $startTime = $d->copy()->setTime((int) $sh, (int) $sm);
+                    $label     = sprintf('%s–%s', $data['start_hour'], $data['end_hour']);
+                    $classes[] = [
+                        'name'       => $base['name'],
+                        'coach'      => $base['coach'],
+                        'capacity'   => $base['capacity'],
+                        'start_time' => $startTime->toDateTimeString(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            if (! empty($classes)) {
+                GymClass::insert($classes);
+            }
+        }
+
+        return back();
+    }
+
+    public function update(Request $request, GymClass $gymClass): RedirectResponse
+    {
+        $data = $request->validate([
+            'name'       => 'sometimes|string|max:255',
+            'coach'      => 'sometimes|string|max:255',
+            'start_time' => 'sometimes|date',
+            'capacity'   => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $gymClass->update($data);
+
+        return back();
+    }
+
+    public function destroy(GymClass $gymClass): RedirectResponse
+    {
+        $gymClass->delete();
+
+        return back();
+    }
+}
