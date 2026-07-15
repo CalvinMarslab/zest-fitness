@@ -58,10 +58,10 @@ export default function AppLayout({ active, title, subtitle, children }) {
     const credits   = auth?.user?.credits ?? 0;
 
     return (
-        <div className="min-h-screen bg-[#CFE0EB]">
+        <div className="min-h-screen bg-[#FFF8E7]">
 
             {/* ── Top bar ── */}
-            <header className="sticky top-0 z-20 bg-[#CFE0EB]/95 backdrop-blur border-b border-[#B8CDD8]">
+            <header className="sticky top-0 z-20 bg-[#FFF8E7]/95 backdrop-blur border-b border-[#DDD5C0]">
                 <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href={route('schedule')}>
                         <img src="/images/logo.svg" alt="Zest Athletic" className="h-8" />
@@ -89,7 +89,7 @@ export default function AppLayout({ active, title, subtitle, children }) {
             </main>
 
             {/* ── Bottom nav ── */}
-            <nav className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-[#B8CDD8]">
+            <nav className="fixed bottom-0 inset-x-0 z-20 bg-white/95 backdrop-blur border-t border-[#DDD5C0]">
                 <div className="max-w-lg mx-auto px-2 h-[72px] flex items-center justify-around">
                     {/* Left 2 items */}
                     {NAV_ITEMS.slice(0, 2).map(({ label, routeName, Icon }) => {

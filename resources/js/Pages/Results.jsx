@@ -34,18 +34,18 @@ function DateStrip({ dates, selectedDate, today }) {
                             'flex flex-col items-center shrink-0 w-14 py-2.5 rounded-2xl transition-all',
                             isSelected
                                 ? 'bg-[#FFF34D] text-[#333E48]'
-                                : 'bg-[#3D4A54] border border-[#4A5661] text-white hover:border-[#FFF34D]/40',
+                                : 'bg-[#FFFFFF] border border-[#DDD5C0] text-[#333E48] hover:border-[#FFF34D]/40',
                         ].join(' ')}
                     >
                         <span className={[
                             'text-[10px] font-bold uppercase tracking-wider',
-                            isSelected ? 'text-[#333E48]/70' : isToday ? 'text-[#FFF34D]' : 'text-[#666]',
+                            isSelected ? 'text-[#333E48]/70' : isToday ? 'text-[#BFD857]' : 'text-[#666]',
                         ].join(' ')}>
                             {dayLabel(d)}
                         </span>
                         <span className={[
                             'text-lg font-black leading-tight',
-                            isSelected ? 'text-[#333E48]' : isToday ? 'text-[#FFF34D]' : 'text-white',
+                            isSelected ? 'text-[#333E48]' : isToday ? 'text-[#BFD857]' : 'text-[#333E48]',
                         ].join(' ')}>
                             {dayNum(d)}
                         </span>
@@ -78,15 +78,15 @@ function LogModal({ date, suggestions = [], onClose }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
             <div
-                className="relative w-full max-w-lg bg-[#3D4A54] rounded-t-3xl border-t border-[#4A5661] p-6 pb-10 shadow-2xl"
+                className="relative w-full max-w-lg bg-[#FFFFFF] rounded-t-3xl border-t border-[#DDD5C0] p-6 pb-10 shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#333]" />
+                <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#EDE5D4]" />
                 <button onClick={onClose}
-                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#4A5661] text-[#888] hover:text-white text-sm transition-colors">
+                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#DDD5C0] text-[#888] hover:text-[#333E48] text-sm transition-colors">
                     ✕
                 </button>
-                <h2 className="text-lg font-black text-white mb-5">Log Your Result</h2>
+                <h2 className="text-lg font-black text-[#333E48] mb-5">Log Your Result</h2>
 
                 <form onSubmit={submit} className="flex flex-col gap-4">
                     <div>
@@ -104,7 +104,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                                             'text-xs font-bold px-3 py-1.5 rounded-full border transition-all',
                                             form.data.exercise === s
                                                 ? 'bg-[#FFF34D] text-[#333E48] border-[#FFF34D]'
-                                                : 'bg-[#111] text-[#FFF34D] border-[#FFF34D]/30 hover:border-[#FFF34D]',
+                                                : 'bg-[#F5EEE0] text-[#6A7A00] border-[#DDD5C0] hover:border-[#BFD857]',
                                         ].join(' ')}
                                     >
                                         🏋️ {s}
@@ -115,7 +115,7 @@ function LogModal({ date, suggestions = [], onClose }) {
 
                         <input
                             autoFocus
-                            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                             placeholder="e.g. Deadlift, 5K Run, Snatch"
                             value={form.data.exercise}
                             onChange={(e) => form.setData('exercise', e.target.value)}
@@ -126,7 +126,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                     <div>
                         <label className="block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5">Result</label>
                         <input
-                            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                             placeholder="e.g. 120 kg, 22:30, 150 reps"
                             value={form.data.value}
                             onChange={(e) => form.setData('value', e.target.value)}
@@ -139,7 +139,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                             Notes <span className="normal-case font-normal text-[#555]">(optional)</span>
                         </label>
                         <textarea
-                            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444] resize-none"
+                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444] resize-none"
                             rows={2}
                             placeholder="PR? Technique notes?"
                             value={form.data.notes}
@@ -173,13 +173,13 @@ function ResultCard({ result, isCurrentUser, selectedDate }) {
             'rounded-2xl border p-4',
             isCurrentUser
                 ? 'bg-[#FFF34D]/5 border-[#FFF34D]/20'
-                : 'bg-[#3D4A54] border-[#4A5661]',
+                : 'bg-[#FFFFFF] border-[#DDD5C0]',
         ].join(' ')}>
             <div className="flex items-start gap-3">
                 {/* Avatar */}
                 <div className={[
                     'shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-black',
-                    isCurrentUser ? 'bg-[#FFF34D] text-[#333E48]' : 'bg-[#4A5661] text-[#888]',
+                    isCurrentUser ? 'bg-[#FFF34D] text-[#333E48]' : 'bg-[#DDD5C0] text-[#888]',
                 ].join(' ')}>
                     {result.name[0]}
                 </div>
@@ -187,7 +187,7 @@ function ResultCard({ result, isCurrentUser, selectedDate }) {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                        <p className={`font-bold text-sm ${isCurrentUser ? 'text-[#FFF34D]' : 'text-white'}`}>
+                        <p className={`font-bold text-sm ${isCurrentUser ? 'text-[#FFF34D]' : 'text-[#333E48]'}`}>
                             {result.name}
                             {isCurrentUser && <span className="ml-1 text-xs text-[#FFF34D]/60 font-normal">(you)</span>}
                         </p>

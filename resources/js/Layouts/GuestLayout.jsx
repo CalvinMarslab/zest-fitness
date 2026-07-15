@@ -1,6 +1,6 @@
 export default function GuestLayout({ children }) {
     return (
-        <div className="min-h-screen bg-[#CFE0EB] flex items-center justify-center p-5">
+        <div className="min-h-screen bg-[#FFF8E7] flex items-center justify-center p-5">
             <div className="w-full max-w-sm">
                 {/* Brand */}
                 <div className="text-center mb-10">
@@ -10,7 +10,7 @@ export default function GuestLayout({ children }) {
                     <p className="text-sm text-[#5A6A75]">Train harder. Track smarter.</p>
                 </div>
 
-                <div className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] px-6 py-8">
+                <div className="bg-[#FFFFFF] rounded-3xl border border-[#DDD5C0] px-6 py-8">
                     {children}
                 </div>
             </div>

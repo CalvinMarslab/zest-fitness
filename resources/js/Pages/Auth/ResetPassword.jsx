@@ -16,7 +16,7 @@ export default function ResetPassword({ token, email }) {
         });
     };
 
-    const inputClass = "w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]";
+    const inputClass = "w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]";
     const labelClass = "block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5";
 
     return (
@@ -25,7 +25,7 @@ export default function ResetPassword({ token, email }) {
 
             <div className="mb-6 text-center">
                 <div className="text-4xl mb-3">🔒</div>
-                <h1 className="text-xl font-black text-white">Set new password</h1>
+                <h1 className="text-xl font-black text-[#333E48]">Set new password</h1>
                 <p className="text-sm text-[#666] mt-1">Choose a strong password for your account.</p>
             </div>
 

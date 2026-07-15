@@ -23,7 +23,7 @@ function FlashMessage() {
     const { flash } = usePage().props;
     if (!flash?.success) return null;
     return (
-        <div className="mb-4 rounded-2xl bg-[#FFF34D]/10 border border-[#FFF34D]/30 px-4 py-3 text-[#FFF34D] text-sm font-medium">
+        <div className="mb-4 rounded-2xl bg-[#FFF34D]/10 border border-[#FFF34D]/30 px-4 py-3 text-[#5A6A35] text-sm font-medium">
             {flash.success}
         </div>
     );
@@ -46,18 +46,18 @@ function DateStrip({ dates, selected, onSelect }) {
                             'flex flex-col items-center shrink-0 w-14 py-2.5 rounded-2xl transition-all',
                             isSelected
                                 ? 'bg-[#FFF34D] text-[#333E48]'
-                                : 'bg-[#3D4A54] border border-[#4A5661] text-white hover:border-[#FFF34D]/40',
+                                : 'bg-[#FFFFFF] border border-[#DDD5C0] text-[#333E48] hover:border-[#FFF34D]/40',
                         ].join(' ')}
                     >
                         <span className={[
                             'text-[10px] font-bold uppercase tracking-wider',
-                            isSelected ? 'text-[#333E48]/70' : isToday ? 'text-[#FFF34D]' : 'text-[#666]',
+                            isSelected ? 'text-[#333E48]/70' : isToday ? 'text-[#BFD857]' : 'text-[#666]',
                         ].join(' ')}>
                             {date.toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
                         <span className={[
                             'text-lg font-black leading-tight',
-                            isSelected ? 'text-[#333E48]' : isToday ? 'text-[#FFF34D]' : 'text-white',
+                            isSelected ? 'text-[#333E48]' : isToday ? 'text-[#BFD857]' : 'text-[#333E48]',
                         ].join(' ')}>
                             {date.getDate()}
                         </span>
@@ -86,13 +86,13 @@ function ClassDetailModal({ gymClass, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-lg bg-[#3D4A54] rounded-t-3xl border-t border-[#4A5661] p-6 pb-10 shadow-2xl">
+            <div className="relative w-full max-w-lg bg-[#FFFFFF] rounded-t-3xl border-t border-[#DDD5C0] p-6 pb-10 shadow-2xl">
                 {/* Handle */}
-                <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#333]" />
+                <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#EDE5D4]" />
 
                 {/* Close */}
                 <button onClick={onClose}
-                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#4A5661] text-[#888] hover:text-white text-sm transition-colors">
+                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#DDD5C0] text-[#888] hover:text-[#333E48] text-sm transition-colors">
                     ✕
                 </button>
 
@@ -100,7 +100,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                 <div className="flex items-center gap-4 mb-6">
                     <span className="text-5xl">{icon}</span>
                     <div>
-                        <h2 className="text-xl font-black text-white">{gymClass.name}</h2>
+                        <h2 className="text-xl font-black text-[#333E48]">{gymClass.name}</h2>
                         <p className="text-sm text-[#888]">with {gymClass.coach}</p>
                     </div>
                     {gymClass.is_booked && (
@@ -118,9 +118,9 @@ function ClassDetailModal({ gymClass, onClose }) {
                         ['Coach', gymClass.coach],
                         ['Capacity', `${gymClass.capacity} spots`],
                     ].map(([label, value]) => (
-                        <div key={label} className="bg-[#111] rounded-2xl p-3 border border-[#4A5661]">
+                        <div key={label} className="bg-[#F5EEE0] rounded-2xl p-3 border border-[#DDD5C0]">
                             <p className="text-[10px] text-[#555] uppercase tracking-wider font-bold mb-1">{label}</p>
-                            <p className="font-bold text-white text-sm">{value}</p>
+                            <p className="font-bold text-[#333E48] text-sm">{value}</p>
                         </div>
                     ))}
                 </div>
@@ -133,7 +133,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                         </span>
                         <span className="text-[#555]">{gymClass.capacity} total</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-[#4A5661] overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-[#DDD5C0] overflow-hidden">
                         <div
                             className="h-full rounded-full bg-[#FFF34D] transition-all"
                             style={{ width: `${pct}%` }}
@@ -155,7 +155,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                         {form.processing ? 'Cancelling…' : 'Cancel Booking'}
                     </button>
                 ) : gymClass.is_full ? (
-                    <button disabled className="w-full rounded-2xl bg-[#4A5661] py-3.5 text-sm font-bold text-[#555] cursor-not-allowed">
+                    <button disabled className="w-full rounded-2xl bg-[#DDD5C0] py-3.5 text-sm font-bold text-[#555] cursor-not-allowed">
                         Class Full
                     </button>
                 ) : (
@@ -176,8 +176,8 @@ const CATEGORY_COLORS = {
     hiit:   'text-red-400 bg-red-400/10 border-red-400/20',
     yoga:   'text-purple-400 bg-purple-400/10 border-purple-400/20',
     spin:   'text-blue-400 bg-blue-400/10 border-blue-400/20',
-    strength: 'text-[#FFF34D] bg-[#FFF34D]/10 border-[#FFF34D]/20',
-    default:  'text-[#FFF34D] bg-[#FFF34D]/10 border-[#FFF34D]/20',
+    strength: 'text-[#6A7A00] bg-[#FFF34D]/20 border-[#BFD857]/40',
+    default:  'text-[#6A7A00] bg-[#FFF34D]/20 border-[#BFD857]/40',
 };
 
 function getCategoryColor(name) {
@@ -200,11 +200,11 @@ function ClassCard({ gymClass, onSelect }) {
     return (
         <article
             onClick={() => onSelect(gymClass)}
-            className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] p-5 cursor-pointer hover:border-[#FFF34D]/30 active:scale-[0.99] transition-all"
+            className="bg-[#FFFFFF] rounded-3xl border border-[#DDD5C0] p-5 cursor-pointer hover:border-[#FFF34D]/30 active:scale-[0.99] transition-all"
         >
             {/* Top row: time + booked badge */}
             <div className="flex items-start justify-between mb-3">
-                <span className="text-2xl font-black text-white">{timeStr}</span>
+                <span className="text-2xl font-black text-[#333E48]">{timeStr}</span>
                 {gymClass.is_booked ? (
                     <span className="text-xs font-black text-[#333E48] bg-[#FFF34D] px-3 py-1 rounded-full">
                         BOOKED
@@ -223,7 +223,7 @@ function ClassCard({ gymClass, onSelect }) {
             </span>
 
             {/* Class name */}
-            <h2 className="text-lg font-black text-white mb-1">{gymClass.name}</h2>
+            <h2 className="text-lg font-black text-[#333E48] mb-1">{gymClass.name}</h2>
 
             {/* Coach */}
             <p className="text-sm text-[#666] mb-4">with {gymClass.coach}</p>
@@ -236,7 +236,7 @@ function ClassCard({ gymClass, onSelect }) {
                         {gymClass.spots_left} / {gymClass.capacity}
                     </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-[#4A5661] overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-[#DDD5C0] overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all ${
                             gymClass.spots_left === 0 ? 'bg-red-500'

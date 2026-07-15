@@ -74,15 +74,15 @@ function Input({ type = 'text', value, onChange, autoComplete, autoFocus, ref: r
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             placeholder={placeholder}
-            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
         />
     );
 }
 
 function Section({ title, subtitle, children }) {
     return (
-        <div className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] p-5">
-            <h2 className="text-base font-black text-white mb-0.5">{title}</h2>
+        <div className="bg-[#FFFFFF] rounded-3xl border border-[#DDD5C0] p-5">
+            <h2 className="text-base font-black text-[#333E48] mb-0.5">{title}</h2>
             {subtitle && <p className="text-xs text-[#666] mb-5">{subtitle}</p>}
             {children}
         </div>
@@ -171,21 +171,21 @@ function UpdatePasswordForm() {
                     <input ref={currentPasswordInput} type="password" value={data.current_password}
                         onChange={(e) => setData('current_password', e.target.value)}
                         autoComplete="current-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="New Password" error={errors.password}>
                     <input ref={passwordInput} type="password" value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="Confirm Password" error={errors.password_confirmation}>
                     <input type="password" value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <div className="flex items-center gap-3 mt-1">
@@ -236,9 +236,9 @@ function DeleteAccountForm() {
             {confirming && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center">
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setConfirming(false); reset(); }} />
-                    <div className="relative w-full max-w-lg bg-[#3D4A54] rounded-t-3xl border-t border-[#4A5661] p-6 pb-10 shadow-2xl">
-                        <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#333]" />
-                        <h2 className="text-lg font-black text-white mb-2">Delete your account?</h2>
+                    <div className="relative w-full max-w-lg bg-[#FFFFFF] rounded-t-3xl border-t border-[#DDD5C0] p-6 pb-10 shadow-2xl">
+                        <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#EDE5D4]" />
+                        <h2 className="text-lg font-black text-[#333E48] mb-2">Delete your account?</h2>
                         <p className="text-sm text-[#666] mb-5">
                             All your data will be permanently deleted. Enter your password to confirm.
                         </p>
@@ -248,11 +248,11 @@ function DeleteAccountForm() {
                                     onChange={(e) => setData('password', e.target.value)}
                                     autoFocus
                                     placeholder="Your current password"
-                                    className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
+                                    className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
                             </Field>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => { setConfirming(false); reset(); }}
-                                    className="flex-1 py-3 rounded-2xl bg-[#4A5661] text-[#888] font-bold text-sm hover:bg-[#333] transition-colors">
+                                    className="flex-1 py-3 rounded-2xl bg-[#DDD5C0] text-[#888] font-bold text-sm hover:bg-[#EDE5D4] transition-colors">
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={processing}

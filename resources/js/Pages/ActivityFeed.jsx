@@ -45,8 +45,8 @@ function MapPlaceholder({ seed = 0 }) {
             <rect width="200" height="120" fill="#111" />
             {[0, 1, 2, 3, 4].map((i) => (
                 <g key={i}>
-                    <line x1={i * 40} y1="0" x2={i * 40} y2="120" stroke="#3D4A54" strokeWidth="4" />
-                    <line x1="0" y1={i * 24} x2="200" y2={i * 24} stroke="#3D4A54" strokeWidth="4" />
+                    <line x1={i * 40} y1="0" x2={i * 40} y2="120" stroke="#FFFFFF" strokeWidth="4" />
+                    <line x1="0" y1={i * 24} x2="200" y2={i * 24} stroke="#FFFFFF" strokeWidth="4" />
                 </g>
             ))}
             <path d={d} fill="none" stroke="#FFF34D" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.2" />
@@ -68,10 +68,10 @@ function ActivityCard({ activity }) {
         ?? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return (
-        <article className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] overflow-hidden">
+        <article className="bg-[#FFFFFF] rounded-3xl border border-[#DDD5C0] overflow-hidden">
             <div className="h-36 w-full relative">
                 <MapPlaceholder seed={activity.id} />
-                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#3D4A54]/80 to-transparent" />
+                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#FFFFFF]/80 to-transparent" />
                 <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold bg-[#333E48]/80 backdrop-blur-sm text-[#FFF34D] border border-[#FFF34D]/30">
                     <span>{cfg.icon}</span>
                     {cfg.label}
@@ -95,9 +95,9 @@ function ActivityCard({ activity }) {
                         pace && { label: 'Avg pace', value: pace },
                     ].filter(Boolean).map((stat, i) => (
                         <Fragment key={stat.label}>
-                            {i > 0 && <div className="h-8 w-px bg-[#4A5661]" />}
+                            {i > 0 && <div className="h-8 w-px bg-[#DDD5C0]" />}
                             <div>
-                                <p className="text-xl font-black text-white leading-none">{stat.value}</p>
+                                <p className="text-xl font-black text-[#333E48] leading-none">{stat.value}</p>
                                 <p className="text-xs text-[#555] mt-0.5">{stat.label}</p>
                             </div>
                         </Fragment>
@@ -130,8 +130,8 @@ function SummaryBar({ activities }) {
                 { label: 'Total distance', value: totalKm.toFixed(1) + ' km' },
                 { label: 'Total time',     value: h > 0 ? `${h}h ${m}m` : `${m}m` },
             ].map(({ label, value }) => (
-                <div key={label} className="bg-[#3D4A54] rounded-2xl border border-[#4A5661] px-3 py-3 text-center">
-                    <p className="text-lg font-black text-white">{value}</p>
+                <div key={label} className="bg-[#FFFFFF] rounded-2xl border border-[#DDD5C0] px-3 py-3 text-center">
+                    <p className="text-lg font-black text-[#333E48]">{value}</p>
                     <p className="text-xs text-[#555] mt-0.5">{label}</p>
                 </div>
             ))}

@@ -15,7 +15,7 @@ export default function ForgotPassword({ status }) {
 
             <div className="mb-6 text-center">
                 <div className="text-4xl mb-3">🔑</div>
-                <h1 className="text-xl font-black text-white">Forgot your password?</h1>
+                <h1 className="text-xl font-black text-[#333E48]">Forgot your password?</h1>
                 <p className="text-sm text-[#666] mt-1">
                     Enter your email and we'll send you a reset link.
                 </p>
@@ -41,7 +41,7 @@ export default function ForgotPassword({ status }) {
                         autoFocus
                         required
                         placeholder="you@example.com"
-                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                     />
                     {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
                 </div>
@@ -57,7 +57,7 @@ export default function ForgotPassword({ status }) {
 
             <p className="text-center text-xs text-[#555] mt-6">
                 Remember your password?{' '}
-                <Link href={route('login')} className="text-[#FFF34D] font-bold hover:text-white transition-colors">
+                <Link href={route('login')} className="text-[#FFF34D] font-bold hover:text-[#333E48] transition-colors">
                     Sign in
                 </Link>
             </p>

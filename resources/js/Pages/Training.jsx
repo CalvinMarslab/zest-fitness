@@ -12,8 +12,8 @@ const TYPE_STYLES = {
     Aerobic:  'text-sky-400 bg-sky-400/10 border-sky-400/20',
     Skill:    'text-purple-400 bg-purple-400/10 border-purple-400/20',
     Mobility: 'text-green-400 bg-green-400/10 border-green-400/20',
-    Rest:     'text-[#555] bg-[#3D4A54] border-[#4A5661]',
-    default:  'text-[#888] bg-[#3D4A54] border-[#4A5661]',
+    Rest:     'text-[#555] bg-[#FFFFFF] border-[#DDD5C0]',
+    default:  'text-[#888] bg-[#FFFFFF] border-[#DDD5C0]',
 };
 
 function typeStyle(type) {
@@ -32,13 +32,13 @@ function ProgramHeader({ program, active, onSelect }) {
                 'flex-1 rounded-2xl p-5 text-left transition-all border',
                 isActive
                     ? 'bg-[#FFF34D]/10 border-[#FFF34D]/40'
-                    : 'bg-[#3D4A54] border-[#4A5661] hover:border-[#FFF34D]/20',
+                    : 'bg-[#FFFFFF] border-[#DDD5C0] hover:border-[#FFF34D]/20',
             ].join(' ')}
         >
             <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl">{program.icon}</span>
                 <div>
-                    <p className={`font-black text-base leading-tight ${isActive ? 'text-[#FFF34D]' : 'text-white'}`}>
+                    <p className={`font-black text-base leading-tight ${isActive ? 'text-[#FFF34D]' : 'text-[#333E48]'}`}>
                         {program.name}
                     </p>
                     {isActive && (
@@ -71,7 +71,7 @@ function DayTabs({ days, selectedDay, todayLabel, onSelect }) {
                                 ? 'bg-[#FFF34D] text-[#333E48]'
                                 : isToday
                                     ? 'bg-[#FFF34D]/10 text-[#FFF34D] border border-[#FFF34D]/30'
-                                    : 'bg-[#3D4A54] text-[#666] border border-[#4A5661] hover:border-[#FFF34D]/20',
+                                    : 'bg-[#FFFFFF] text-[#666] border border-[#DDD5C0] hover:border-[#FFF34D]/20',
                         ].join(' ')}
                     >
                         {isToday ? `Today (${day.slice(0, 3)})` : day.slice(0, 3)}
@@ -86,12 +86,12 @@ function DayTabs({ days, selectedDay, todayLabel, onSelect }) {
 
 function WorkoutBlock({ item }) {
     return (
-        <div className="bg-[#111] rounded-2xl border border-[#4A5661] p-4 flex gap-3">
+        <div className="bg-[#F5EEE0] rounded-2xl border border-[#DDD5C0] p-4 flex gap-3">
             <span className={`shrink-0 self-start text-xs font-bold px-2 py-1 rounded-lg border ${typeStyle(item.type)}`}>
                 {item.type}
             </span>
             <div className="min-w-0">
-                <p className="font-bold text-white text-sm">{item.name}</p>
+                <p className="font-bold text-[#333E48] text-sm">{item.name}</p>
                 {item.sets && (
                     <p className="text-xs text-[#666] mt-0.5">{item.sets}</p>
                 )}
@@ -119,13 +119,13 @@ function WeeklyOverview({ schedule, todayLabel }) {
                             isToday
                                 ? 'bg-[#FFF34D] text-[#333E48]'
                                 : isRest
-                                    ? 'bg-[#111] text-[#333]'
-                                    : 'bg-[#3D4A54] text-[#666]',
+                                    ? 'bg-[#F5EEE0] text-[#333]'
+                                    : 'bg-[#FFFFFF] text-[#666]',
                         ].join(' ')}
                     >
                         <p className="text-xs font-black">{day.slice(0, 1)}</p>
                         <div className={`mt-0.5 mx-auto w-1.5 h-1.5 rounded-full ${
-                            isToday ? 'bg-[#333E48]' : isRest ? 'bg-[#4A5661]' : 'bg-[#444]'
+                            isToday ? 'bg-[#333E48]' : isRest ? 'bg-[#DDD5C0]' : 'bg-[#444]'
                         }`} />
                     </div>
                 );
@@ -172,7 +172,7 @@ function ProgramDetail({ program }) {
                 </div>
 
                 {dayData.workout[0].type === 'Rest' ? (
-                    <div className="bg-[#111] rounded-2xl border border-[#4A5661] p-6 text-center">
+                    <div className="bg-[#F5EEE0] rounded-2xl border border-[#DDD5C0] p-6 text-center">
                         <p className="text-3xl mb-2">😴</p>
                         <p className="font-bold text-[#888]">Rest Day</p>
                         <p className="text-xs mt-1 text-[#555]">{dayData.workout[0].sets}</p>
