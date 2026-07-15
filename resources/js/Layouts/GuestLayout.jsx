@@ -1,6 +1,6 @@
 export default function GuestLayout({ children }) {
     return (
-        <div className="min-h-screen bg-[#FFF8E7] flex items-center justify-center p-5">
+        <div className="min-h-screen bg-[#CFE0EB] flex items-center justify-center p-5">
             <div className="w-full max-w-sm">
                 {/* Brand */}
                 <div className="text-center mb-10">

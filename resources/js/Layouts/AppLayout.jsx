@@ -58,10 +58,10 @@ export default function AppLayout({ active, title, subtitle, children }) {
     const credits   = auth?.user?.credits ?? 0;
 
     return (
-        <div className="min-h-screen bg-[#FFF8E7]">
+        <div className="min-h-screen bg-[#CFE0EB]">
 
             {/* ── Top bar ── */}
-            <header className="sticky top-0 z-20 bg-[#FFF8E7]/95 backdrop-blur border-b border-[#DDD5C0]">
+            <header className="sticky top-0 z-20 bg-[#CFE0EB]/95 backdrop-blur border-b border-[#DDD5C0]">
                 <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href={route('schedule')}>
                         <img src="/images/logo.svg" alt="Zest Athletic" className="h-8" />
