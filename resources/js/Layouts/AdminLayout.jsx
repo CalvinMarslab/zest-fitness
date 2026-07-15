@@ -64,7 +64,7 @@ export default function AdminLayout({ children, title }) {
                 {/* Branding + mobile close button */}
                 <div className="px-5 py-5 border-b border-gray-700 flex items-center justify-between">
                     <div>
-                        <p className="text-orange-400 font-bold text-lg leading-tight">Zest Fitness</p>
+                        <p className="text-orange-400 font-bold text-lg leading-tight">Zest Athletic</p>
                         <p className="text-gray-400 text-xs mt-0.5">Admin Panel</p>
                     </div>
                     <button

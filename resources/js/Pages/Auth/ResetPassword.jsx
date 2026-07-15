@@ -16,7 +16,7 @@ export default function ResetPassword({ token, email }) {
         });
     };
 
-    const inputClass = "w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all placeholder:text-[#444]";
+    const inputClass = "w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]";
     const labelClass = "block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5";
 
     return (
@@ -56,7 +56,7 @@ export default function ResetPassword({ token, email }) {
                 </div>
 
                 <button type="submit" disabled={processing}
-                    className="w-full mt-2 py-3.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-60">
+                    className="w-full mt-2 py-3.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-60">
                     {processing ? 'Resetting…' : 'Reset Password'}
                 </button>
             </form>

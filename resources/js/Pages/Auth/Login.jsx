@@ -28,7 +28,7 @@ function Input({ type = 'text', id, name, value, onChange, autoComplete, autoFoc
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             required
-            className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all placeholder:text-[#444]"
+            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
         />
     );
 }
@@ -48,7 +48,7 @@ function LoginForm({ status, canResetPassword }) {
     return (
         <form onSubmit={submit} className="flex flex-col gap-4">
             {status && (
-                <p className="text-sm font-medium text-[#C8FF00] bg-[#C8FF00]/10 border border-[#C8FF00]/20 rounded-xl px-3 py-2">{status}</p>
+                <p className="text-sm font-medium text-[#FFF34D] bg-[#FFF34D]/10 border border-[#FFF34D]/20 rounded-xl px-3 py-2">{status}</p>
             )}
 
             <Field label="Email" id="email" error={errors.email}>
@@ -67,19 +67,19 @@ function LoginForm({ status, canResetPassword }) {
                 <label className="flex items-center gap-2 text-sm text-[#888] cursor-pointer">
                     <input type="checkbox" checked={data.remember}
                         onChange={(e) => setData('remember', e.target.checked)}
-                        className="accent-[#C8FF00] rounded" />
+                        className="accent-[#FFF34D] rounded" />
                     Remember me
                 </label>
                 {canResetPassword && (
                     <Link href={route('password.request')}
-                        className="text-xs text-[#C8FF00] hover:text-white font-medium transition-colors">
+                        className="text-xs text-[#FFF34D] hover:text-white font-medium transition-colors">
                         Forgot password?
                     </Link>
                 )}
             </div>
 
             <button type="submit" disabled={processing}
-                className="w-full mt-2 py-3.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-60">
+                className="w-full mt-2 py-3.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-60">
                 {processing ? 'Signing in…' : 'Sign In'}
             </button>
         </form>
@@ -126,7 +126,7 @@ function RegisterForm() {
             </Field>
 
             <button type="submit" disabled={processing}
-                className="w-full mt-2 py-3.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-60">
+                className="w-full mt-2 py-3.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-60">
                 {processing ? 'Creating account…' : 'Create Account'}
             </button>
 
@@ -144,7 +144,7 @@ export default function Login({ status, canResetPassword }) {
             <Head title={tab === 'login' ? 'Sign In' : 'Create Account'} />
 
             {/* Tab toggle */}
-            <div className="flex bg-[#111] rounded-2xl p-1 mb-6 border border-[#2A2A2A]">
+            <div className="flex bg-[#111] rounded-2xl p-1 mb-6 border border-[#4A5661]">
                 {[['login', 'Sign In'], ['register', 'Register']].map(([key, label]) => (
                     <button
                         key={key}
@@ -153,7 +153,7 @@ export default function Login({ status, canResetPassword }) {
                         className={[
                             'flex-1 py-2.5 rounded-xl text-sm font-bold transition-all',
                             tab === key
-                                ? 'bg-[#C8FF00] text-[#0D0D0D]'
+                                ? 'bg-[#FFF34D] text-[#333E48]'
                                 : 'text-[#666] hover:text-white',
                         ].join(' ')}
                     >

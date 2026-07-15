@@ -14,26 +14,26 @@ function WalletCard({ subscription }) {
     };
 
     return (
-        <div className="relative overflow-hidden rounded-3xl bg-[#C8FF00] p-5">
+        <div className="relative overflow-hidden rounded-3xl bg-[#FFF34D] p-5">
             {/* Background decoration */}
             <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-black/5" />
             <div className="absolute -right-2 bottom-2 w-20 h-20 rounded-full bg-black/5" />
 
             <div className="relative flex items-center justify-between">
                 <div>
-                    <p className="text-xs font-bold text-[#0D0D0D]/60 uppercase tracking-widest mb-1">Credit Wallet</p>
+                    <p className="text-xs font-bold text-[#333E48]/60 uppercase tracking-widest mb-1">Credit Wallet</p>
                     <div className="flex items-end gap-1.5">
-                        <span className="text-4xl font-black text-[#0D0D0D] leading-none">{credits}</span>
-                        <span className="text-sm font-bold text-[#0D0D0D]/60 mb-0.5">credits</span>
+                        <span className="text-4xl font-black text-[#333E48] leading-none">{credits}</span>
+                        <span className="text-sm font-bold text-[#333E48]/60 mb-0.5">credits</span>
                     </div>
 
                     {/* Expiry line */}
                     {subscription ? (
-                        <p className={`text-xs mt-1 font-semibold ${subscription.is_expiring_soon ? 'text-red-700' : 'text-[#0D0D0D]/50'}`}>
+                        <p className={`text-xs mt-1 font-semibold ${subscription.is_expiring_soon ? 'text-red-700' : 'text-[#333E48]/50'}`}>
                             {subscription.is_expiring_soon ? '⚠️ ' : ''}Expires {formatDate(subscription.expires_at)}
                         </p>
                     ) : (
-                        <p className="text-xs text-[#0D0D0D]/50 mt-1">
+                        <p className="text-xs text-[#333E48]/50 mt-1">
                             {credits === 0 ? 'No credits — top up to book classes' : 'No active subscription'}
                         </p>
                     )}
@@ -41,7 +41,7 @@ function WalletCard({ subscription }) {
 
                 <Link
                     href={route('packages')}
-                    className="shrink-0 flex items-center gap-1.5 bg-[#0D0D0D] text-[#C8FF00] text-xs font-black px-4 py-2.5 rounded-2xl hover:bg-[#1a1a1a] active:scale-95 transition-all"
+                    className="shrink-0 flex items-center gap-1.5 bg-[#333E48] text-[#FFF34D] text-xs font-black px-4 py-2.5 rounded-2xl hover:bg-[#1a1a1a] active:scale-95 transition-all"
                 >
                     <span>+</span> Top Up
                 </Link>
@@ -74,14 +74,14 @@ function Input({ type = 'text', value, onChange, autoComplete, autoFocus, ref: r
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             placeholder={placeholder}
-            className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all placeholder:text-[#444]"
+            className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
         />
     );
 }
 
 function Section({ title, subtitle, children }) {
     return (
-        <div className="bg-[#1A1A1A] rounded-3xl border border-[#2A2A2A] p-5">
+        <div className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] p-5">
             <h2 className="text-base font-black text-white mb-0.5">{title}</h2>
             {subtitle && <p className="text-xs text-[#666] mb-5">{subtitle}</p>}
             {children}
@@ -121,18 +121,18 @@ function UpdateProfileForm({ mustVerifyEmail, status }) {
                             Resend verification email.
                         </Link>
                         {status === 'verification-link-sent' && (
-                            <p className="mt-1 font-bold text-[#C8FF00]">Verification link sent!</p>
+                            <p className="mt-1 font-bold text-[#FFF34D]">Verification link sent!</p>
                         )}
                     </div>
                 )}
 
                 <div className="flex items-center gap-3 mt-1">
                     <button type="submit" disabled={processing}
-                        className="px-6 py-2.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-50">
+                        className="px-6 py-2.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-50">
                         {processing ? 'Saving…' : 'Save Changes'}
                     </button>
                     {recentlySuccessful && (
-                        <span className="text-xs font-bold text-[#C8FF00]">Saved!</span>
+                        <span className="text-xs font-bold text-[#FFF34D]">Saved!</span>
                     )}
                 </div>
             </form>
@@ -171,30 +171,30 @@ function UpdatePasswordForm() {
                     <input ref={currentPasswordInput} type="password" value={data.current_password}
                         onChange={(e) => setData('current_password', e.target.value)}
                         autoComplete="current-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="New Password" error={errors.password}>
                     <input ref={passwordInput} type="password" value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="Confirm Password" error={errors.password_confirmation}>
                     <input type="password" value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <div className="flex items-center gap-3 mt-1">
                     <button type="submit" disabled={processing}
-                        className="px-6 py-2.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-50">
+                        className="px-6 py-2.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-50">
                         {processing ? 'Saving…' : 'Update Password'}
                     </button>
                     {recentlySuccessful && (
-                        <span className="text-xs font-bold text-[#C8FF00]">Saved!</span>
+                        <span className="text-xs font-bold text-[#FFF34D]">Saved!</span>
                     )}
                 </div>
             </form>
@@ -236,7 +236,7 @@ function DeleteAccountForm() {
             {confirming && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center">
                     <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setConfirming(false); reset(); }} />
-                    <div className="relative w-full max-w-lg bg-[#1A1A1A] rounded-t-3xl border-t border-[#2A2A2A] p-6 pb-10 shadow-2xl">
+                    <div className="relative w-full max-w-lg bg-[#3D4A54] rounded-t-3xl border-t border-[#4A5661] p-6 pb-10 shadow-2xl">
                         <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#333]" />
                         <h2 className="text-lg font-black text-white mb-2">Delete your account?</h2>
                         <p className="text-sm text-[#666] mb-5">
@@ -248,11 +248,11 @@ function DeleteAccountForm() {
                                     onChange={(e) => setData('password', e.target.value)}
                                     autoFocus
                                     placeholder="Your current password"
-                                    className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
+                                    className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
                             </Field>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => { setConfirming(false); reset(); }}
-                                    className="flex-1 py-3 rounded-2xl bg-[#2A2A2A] text-[#888] font-bold text-sm hover:bg-[#333] transition-colors">
+                                    className="flex-1 py-3 rounded-2xl bg-[#4A5661] text-[#888] font-bold text-sm hover:bg-[#333] transition-colors">
                                     Cancel
                                 </button>
                                 <button type="submit" disabled={processing}
@@ -276,7 +276,7 @@ export default function Edit({ mustVerifyEmail, status, subscription }) {
             <Head title="Profile" />
 
             <div className="mb-5">
-                <h1 className="text-2xl font-black text-white">Profile</h1>
+                <h1 className="text-2xl font-black text-[#333E48]">Profile</h1>
                 <p className="text-sm text-[#666] mt-0.5">Manage your account settings</p>
             </div>
 

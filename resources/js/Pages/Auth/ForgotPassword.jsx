@@ -22,7 +22,7 @@ export default function ForgotPassword({ status }) {
             </div>
 
             {status && (
-                <div className="mb-4 rounded-2xl bg-[#C8FF00]/10 border border-[#C8FF00]/30 px-4 py-3 text-[#C8FF00] text-sm font-medium">
+                <div className="mb-4 rounded-2xl bg-[#FFF34D]/10 border border-[#FFF34D]/30 px-4 py-3 text-[#FFF34D] text-sm font-medium">
                     {status}
                 </div>
             )}
@@ -41,7 +41,7 @@ export default function ForgotPassword({ status }) {
                         autoFocus
                         required
                         placeholder="you@example.com"
-                        className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all placeholder:text-[#444]"
+                        className="w-full rounded-xl bg-[#111] border border-[#4A5661] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                     />
                     {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
                 </div>
@@ -49,7 +49,7 @@ export default function ForgotPassword({ status }) {
                 <button
                     type="submit"
                     disabled={processing}
-                    className="w-full mt-2 py-3.5 rounded-2xl bg-[#C8FF00] text-[#0D0D0D] font-black text-sm hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-60"
+                    className="w-full mt-2 py-3.5 rounded-2xl bg-[#FFF34D] text-[#333E48] font-black text-sm hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-60"
                 >
                     {processing ? 'Sending…' : 'Send Reset Link'}
                 </button>
@@ -57,7 +57,7 @@ export default function ForgotPassword({ status }) {
 
             <p className="text-center text-xs text-[#555] mt-6">
                 Remember your password?{' '}
-                <Link href={route('login')} className="text-[#C8FF00] font-bold hover:text-white transition-colors">
+                <Link href={route('login')} className="text-[#FFF34D] font-bold hover:text-white transition-colors">
                     Sign in
                 </Link>
             </p>

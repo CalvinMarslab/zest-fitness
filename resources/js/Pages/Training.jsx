@@ -12,8 +12,8 @@ const TYPE_STYLES = {
     Aerobic:  'text-sky-400 bg-sky-400/10 border-sky-400/20',
     Skill:    'text-purple-400 bg-purple-400/10 border-purple-400/20',
     Mobility: 'text-green-400 bg-green-400/10 border-green-400/20',
-    Rest:     'text-[#555] bg-[#1A1A1A] border-[#2A2A2A]',
-    default:  'text-[#888] bg-[#1A1A1A] border-[#2A2A2A]',
+    Rest:     'text-[#555] bg-[#3D4A54] border-[#4A5661]',
+    default:  'text-[#888] bg-[#3D4A54] border-[#4A5661]',
 };
 
 function typeStyle(type) {
@@ -31,18 +31,18 @@ function ProgramHeader({ program, active, onSelect }) {
             className={[
                 'flex-1 rounded-2xl p-5 text-left transition-all border',
                 isActive
-                    ? 'bg-[#C8FF00]/10 border-[#C8FF00]/40'
-                    : 'bg-[#1A1A1A] border-[#2A2A2A] hover:border-[#C8FF00]/20',
+                    ? 'bg-[#FFF34D]/10 border-[#FFF34D]/40'
+                    : 'bg-[#3D4A54] border-[#4A5661] hover:border-[#FFF34D]/20',
             ].join(' ')}
         >
             <div className="flex items-center gap-3 mb-2">
                 <span className="text-3xl">{program.icon}</span>
                 <div>
-                    <p className={`font-black text-base leading-tight ${isActive ? 'text-[#C8FF00]' : 'text-white'}`}>
+                    <p className={`font-black text-base leading-tight ${isActive ? 'text-[#FFF34D]' : 'text-white'}`}>
                         {program.name}
                     </p>
                     {isActive && (
-                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#C8FF00] text-[#0D0D0D] mt-0.5">
+                        <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF34D] text-[#333E48] mt-0.5">
                             Active
                         </span>
                     )}
@@ -68,10 +68,10 @@ function DayTabs({ days, selectedDay, todayLabel, onSelect }) {
                         className={[
                             'shrink-0 px-3 py-1.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap',
                             isSelected
-                                ? 'bg-[#C8FF00] text-[#0D0D0D]'
+                                ? 'bg-[#FFF34D] text-[#333E48]'
                                 : isToday
-                                    ? 'bg-[#C8FF00]/10 text-[#C8FF00] border border-[#C8FF00]/30'
-                                    : 'bg-[#1A1A1A] text-[#666] border border-[#2A2A2A] hover:border-[#C8FF00]/20',
+                                    ? 'bg-[#FFF34D]/10 text-[#FFF34D] border border-[#FFF34D]/30'
+                                    : 'bg-[#3D4A54] text-[#666] border border-[#4A5661] hover:border-[#FFF34D]/20',
                         ].join(' ')}
                     >
                         {isToday ? `Today (${day.slice(0, 3)})` : day.slice(0, 3)}
@@ -86,7 +86,7 @@ function DayTabs({ days, selectedDay, todayLabel, onSelect }) {
 
 function WorkoutBlock({ item }) {
     return (
-        <div className="bg-[#111] rounded-2xl border border-[#2A2A2A] p-4 flex gap-3">
+        <div className="bg-[#111] rounded-2xl border border-[#4A5661] p-4 flex gap-3">
             <span className={`shrink-0 self-start text-xs font-bold px-2 py-1 rounded-lg border ${typeStyle(item.type)}`}>
                 {item.type}
             </span>
@@ -117,15 +117,15 @@ function WeeklyOverview({ schedule, todayLabel }) {
                         className={[
                             'rounded-xl p-1.5 text-center',
                             isToday
-                                ? 'bg-[#C8FF00] text-[#0D0D0D]'
+                                ? 'bg-[#FFF34D] text-[#333E48]'
                                 : isRest
                                     ? 'bg-[#111] text-[#333]'
-                                    : 'bg-[#1A1A1A] text-[#666]',
+                                    : 'bg-[#3D4A54] text-[#666]',
                         ].join(' ')}
                     >
                         <p className="text-xs font-black">{day.slice(0, 1)}</p>
                         <div className={`mt-0.5 mx-auto w-1.5 h-1.5 rounded-full ${
-                            isToday ? 'bg-[#0D0D0D]' : isRest ? 'bg-[#2A2A2A]' : 'bg-[#444]'
+                            isToday ? 'bg-[#333E48]' : isRest ? 'bg-[#4A5661]' : 'bg-[#444]'
                         }`} />
                     </div>
                 );
@@ -161,18 +161,18 @@ function ProgramDetail({ program }) {
             <div>
                 <div className="flex items-center justify-between mb-3">
                     <div>
-                        <h3 className="font-black text-white">{dayData.day}</h3>
+                        <h3 className="font-black text-[#333E48]">{dayData.day}</h3>
                         <p className="text-xs text-[#666]">{dayData.focus}</p>
                     </div>
                     {dayData.day === todayLabel && (
-                        <span className="text-xs font-black bg-[#C8FF00] text-[#0D0D0D] px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-black bg-[#FFF34D] text-[#333E48] px-2.5 py-1 rounded-full">
                             Today
                         </span>
                     )}
                 </div>
 
                 {dayData.workout[0].type === 'Rest' ? (
-                    <div className="bg-[#111] rounded-2xl border border-[#2A2A2A] p-6 text-center">
+                    <div className="bg-[#111] rounded-2xl border border-[#4A5661] p-6 text-center">
                         <p className="text-3xl mb-2">😴</p>
                         <p className="font-bold text-[#888]">Rest Day</p>
                         <p className="text-xs mt-1 text-[#555]">{dayData.workout[0].sets}</p>
@@ -198,7 +198,7 @@ export default function Training({ programs }) {
     return (
         <AppLayout active="Training">
             <div className="mb-6">
-                <h1 className="text-2xl font-black text-white">Training Programs</h1>
+                <h1 className="text-2xl font-black text-[#333E48]">Training Programs</h1>
                 <p className="mt-0.5 text-sm text-[#666]">Your daily workout plan — pick a program to follow</p>
             </div>
 

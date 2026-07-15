@@ -23,7 +23,7 @@ function FlashMessage() {
     const { flash } = usePage().props;
     if (!flash?.success) return null;
     return (
-        <div className="mb-4 rounded-2xl bg-[#C8FF00]/10 border border-[#C8FF00]/30 px-4 py-3 text-[#C8FF00] text-sm font-medium">
+        <div className="mb-4 rounded-2xl bg-[#FFF34D]/10 border border-[#FFF34D]/30 px-4 py-3 text-[#FFF34D] text-sm font-medium">
             {flash.success}
         </div>
     );
@@ -45,24 +45,24 @@ function DateStrip({ dates, selected, onSelect }) {
                         className={[
                             'flex flex-col items-center shrink-0 w-14 py-2.5 rounded-2xl transition-all',
                             isSelected
-                                ? 'bg-[#C8FF00] text-[#0D0D0D]'
-                                : 'bg-[#1A1A1A] border border-[#2A2A2A] text-white hover:border-[#C8FF00]/40',
+                                ? 'bg-[#FFF34D] text-[#333E48]'
+                                : 'bg-[#3D4A54] border border-[#4A5661] text-white hover:border-[#FFF34D]/40',
                         ].join(' ')}
                     >
                         <span className={[
                             'text-[10px] font-bold uppercase tracking-wider',
-                            isSelected ? 'text-[#0D0D0D]/70' : isToday ? 'text-[#C8FF00]' : 'text-[#666]',
+                            isSelected ? 'text-[#333E48]/70' : isToday ? 'text-[#FFF34D]' : 'text-[#666]',
                         ].join(' ')}>
                             {date.toLocaleDateString('en-US', { weekday: 'short' })}
                         </span>
                         <span className={[
                             'text-lg font-black leading-tight',
-                            isSelected ? 'text-[#0D0D0D]' : isToday ? 'text-[#C8FF00]' : 'text-white',
+                            isSelected ? 'text-[#333E48]' : isToday ? 'text-[#FFF34D]' : 'text-white',
                         ].join(' ')}>
                             {date.getDate()}
                         </span>
                         {isToday && !isSelected && (
-                            <span className="w-1 h-1 rounded-full bg-[#C8FF00] mt-0.5" />
+                            <span className="w-1 h-1 rounded-full bg-[#FFF34D] mt-0.5" />
                         )}
                     </button>
                 );
@@ -86,13 +86,13 @@ function ClassDetailModal({ gymClass, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative w-full max-w-lg bg-[#1A1A1A] rounded-t-3xl border-t border-[#2A2A2A] p-6 pb-10 shadow-2xl">
+            <div className="relative w-full max-w-lg bg-[#3D4A54] rounded-t-3xl border-t border-[#4A5661] p-6 pb-10 shadow-2xl">
                 {/* Handle */}
                 <div className="mx-auto mb-5 w-10 h-1 rounded-full bg-[#333]" />
 
                 {/* Close */}
                 <button onClick={onClose}
-                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#2A2A2A] text-[#888] hover:text-white text-sm transition-colors">
+                    className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-[#4A5661] text-[#888] hover:text-white text-sm transition-colors">
                     ✕
                 </button>
 
@@ -104,7 +104,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                         <p className="text-sm text-[#888]">with {gymClass.coach}</p>
                     </div>
                     {gymClass.is_booked && (
-                        <span className="ml-auto text-xs font-bold text-[#0D0D0D] bg-[#C8FF00] px-3 py-1 rounded-full">
+                        <span className="ml-auto text-xs font-bold text-[#333E48] bg-[#FFF34D] px-3 py-1 rounded-full">
                             BOOKED
                         </span>
                     )}
@@ -118,7 +118,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                         ['Coach', gymClass.coach],
                         ['Capacity', `${gymClass.capacity} spots`],
                     ].map(([label, value]) => (
-                        <div key={label} className="bg-[#111] rounded-2xl p-3 border border-[#2A2A2A]">
+                        <div key={label} className="bg-[#111] rounded-2xl p-3 border border-[#4A5661]">
                             <p className="text-[10px] text-[#555] uppercase tracking-wider font-bold mb-1">{label}</p>
                             <p className="font-bold text-white text-sm">{value}</p>
                         </div>
@@ -133,9 +133,9 @@ function ClassDetailModal({ gymClass, onClose }) {
                         </span>
                         <span className="text-[#555]">{gymClass.capacity} total</span>
                     </div>
-                    <div className="h-2 w-full rounded-full bg-[#2A2A2A] overflow-hidden">
+                    <div className="h-2 w-full rounded-full bg-[#4A5661] overflow-hidden">
                         <div
-                            className="h-full rounded-full bg-[#C8FF00] transition-all"
+                            className="h-full rounded-full bg-[#FFF34D] transition-all"
                             style={{ width: `${pct}%` }}
                         />
                     </div>
@@ -155,12 +155,12 @@ function ClassDetailModal({ gymClass, onClose }) {
                         {form.processing ? 'Cancelling…' : 'Cancel Booking'}
                     </button>
                 ) : gymClass.is_full ? (
-                    <button disabled className="w-full rounded-2xl bg-[#2A2A2A] py-3.5 text-sm font-bold text-[#555] cursor-not-allowed">
+                    <button disabled className="w-full rounded-2xl bg-[#4A5661] py-3.5 text-sm font-bold text-[#555] cursor-not-allowed">
                         Class Full
                     </button>
                 ) : (
                     <button onClick={book} disabled={form.processing}
-                        className="w-full rounded-2xl bg-[#C8FF00] py-3.5 text-sm font-black text-[#0D0D0D] hover:bg-[#d4ff33] active:scale-[0.98] transition-all disabled:opacity-50">
+                        className="w-full rounded-2xl bg-[#FFF34D] py-3.5 text-sm font-black text-[#333E48] hover:bg-[#FFE633] active:scale-[0.98] transition-all disabled:opacity-50">
                         {form.processing ? 'Booking…' : 'Book Now'}
                     </button>
                 )}
@@ -176,8 +176,8 @@ const CATEGORY_COLORS = {
     hiit:   'text-red-400 bg-red-400/10 border-red-400/20',
     yoga:   'text-purple-400 bg-purple-400/10 border-purple-400/20',
     spin:   'text-blue-400 bg-blue-400/10 border-blue-400/20',
-    strength: 'text-[#C8FF00] bg-[#C8FF00]/10 border-[#C8FF00]/20',
-    default:  'text-[#C8FF00] bg-[#C8FF00]/10 border-[#C8FF00]/20',
+    strength: 'text-[#FFF34D] bg-[#FFF34D]/10 border-[#FFF34D]/20',
+    default:  'text-[#FFF34D] bg-[#FFF34D]/10 border-[#FFF34D]/20',
 };
 
 function getCategoryColor(name) {
@@ -200,13 +200,13 @@ function ClassCard({ gymClass, onSelect }) {
     return (
         <article
             onClick={() => onSelect(gymClass)}
-            className="bg-[#1A1A1A] rounded-3xl border border-[#2A2A2A] p-5 cursor-pointer hover:border-[#C8FF00]/30 active:scale-[0.99] transition-all"
+            className="bg-[#3D4A54] rounded-3xl border border-[#4A5661] p-5 cursor-pointer hover:border-[#FFF34D]/30 active:scale-[0.99] transition-all"
         >
             {/* Top row: time + booked badge */}
             <div className="flex items-start justify-between mb-3">
                 <span className="text-2xl font-black text-white">{timeStr}</span>
                 {gymClass.is_booked ? (
-                    <span className="text-xs font-black text-[#0D0D0D] bg-[#C8FF00] px-3 py-1 rounded-full">
+                    <span className="text-xs font-black text-[#333E48] bg-[#FFF34D] px-3 py-1 rounded-full">
                         BOOKED
                     </span>
                 ) : gymClass.is_full ? (
@@ -236,12 +236,12 @@ function ClassCard({ gymClass, onSelect }) {
                         {gymClass.spots_left} / {gymClass.capacity}
                     </span>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-[#2A2A2A] overflow-hidden">
+                <div className="h-1.5 w-full rounded-full bg-[#4A5661] overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all ${
                             gymClass.spots_left === 0 ? 'bg-red-500'
                             : gymClass.spots_left <= 3 ? 'bg-amber-400'
-                            : 'bg-[#C8FF00]'
+                            : 'bg-[#FFF34D]'
                         }`}
                         style={{ width: `${pct}%` }}
                     />
@@ -281,7 +281,7 @@ export default function Schedule({ classes }) {
 
             {/* Header */}
             <div className="mb-5">
-                <h1 className="text-2xl font-black text-white">Class Schedule</h1>
+                <h1 className="text-2xl font-black text-[#333E48]">Class Schedule</h1>
                 <p className="text-sm text-[#666] mt-0.5">Book your next workout</p>
             </div>
 
@@ -301,7 +301,7 @@ export default function Schedule({ classes }) {
             {filtered.length === 0 ? (
                 <div className="text-center py-20">
                     <p className="text-5xl mb-4">🗓️</p>
-                    <p className="font-bold text-white">No classes on this day</p>
+                    <p className="font-bold text-[#333E48]">No classes on this day</p>
                     <p className="text-sm mt-1 text-[#666]">Pick another date above</p>
                 </div>
             ) : (

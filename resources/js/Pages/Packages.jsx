@@ -5,7 +5,7 @@ function SuccessFlash() {
     const { flash } = usePage().props;
     if (!flash?.success) return null;
     return (
-        <div className="mb-4 rounded-2xl bg-[#C8FF00]/10 border border-[#C8FF00]/30 px-4 py-3 text-[#C8FF00] text-sm font-medium">
+        <div className="mb-4 rounded-2xl bg-[#FFF34D]/10 border border-[#FFF34D]/30 px-4 py-3 text-[#FFF34D] text-sm font-medium">
             {flash.success}
         </div>
     );
@@ -14,11 +14,11 @@ function SuccessFlash() {
 function ActiveBanner({ sub }) {
     if (!sub) return null;
     return (
-        <div className="mb-6 bg-[#C8FF00]/5 border border-[#C8FF00]/20 rounded-2xl px-4 py-4">
-            <p className="text-sm font-bold text-[#C8FF00]">
+        <div className="mb-6 bg-[#FFF34D]/5 border border-[#FFF34D]/20 rounded-2xl px-4 py-4">
+            <p className="text-sm font-bold text-[#FFF34D]">
                 ✅ Active: <span className="font-black">{sub.package_name}</span>
             </p>
-            <p className="text-xs text-[#C8FF00]/60 mt-0.5">
+            <p className="text-xs text-[#FFF34D]/60 mt-0.5">
                 {sub.credits} credits granted · Expires {new Date(sub.expires_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
         </div>
@@ -30,15 +30,15 @@ function PackageCard({ pkg, onSubscribe }) {
     const trialUsed = pkg.trial_used;
 
     return (
-        <div className={`relative bg-[#1A1A1A] rounded-2xl border p-5 flex flex-col ${
-            trialUsed ? 'border-[#2A2A2A] opacity-60' : hasBadge ? 'border-[#C8FF00]/40' : 'border-[#2A2A2A]'
+        <div className={`relative bg-[#3D4A54] rounded-2xl border p-5 flex flex-col ${
+            trialUsed ? 'border-[#4A5661] opacity-60' : hasBadge ? 'border-[#FFF34D]/40' : 'border-[#4A5661]'
         }`}>
             {hasBadge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <span className={`text-xs font-black px-4 py-1 rounded-full whitespace-nowrap ${
                         trialUsed
                             ? 'bg-[#333] text-[#666]'
-                            : 'bg-[#C8FF00] text-[#0D0D0D]'
+                            : 'bg-[#FFF34D] text-[#333E48]'
                     }`}>
                         {trialUsed ? '✓ Trial Used' : pkg.badge}
                     </span>
@@ -62,11 +62,11 @@ function PackageCard({ pkg, onSubscribe }) {
             </div>
 
             <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-2 bg-[#C8FF00]/5 border border-[#C8FF00]/20 rounded-xl px-3 py-2 w-full">
+                <div className="flex items-center gap-2 bg-[#FFF34D]/5 border border-[#FFF34D]/20 rounded-xl px-3 py-2 w-full">
                     <span className="text-xl">🎟</span>
                     <div>
-                        <p className="text-sm font-black text-[#C8FF00]">{pkg.credits} Credits</p>
-                        <p className="text-xs text-[#C8FF00]/50">Valid for {pkg.period_label}</p>
+                        <p className="text-sm font-black text-[#FFF34D]">{pkg.credits} Credits</p>
+                        <p className="text-xs text-[#FFF34D]/50">Valid for {pkg.period_label}</p>
                     </div>
                 </div>
             </div>
@@ -82,10 +82,10 @@ function PackageCard({ pkg, onSubscribe }) {
                 disabled={trialUsed}
                 className={`w-full py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed ${
                     trialUsed
-                        ? 'bg-[#1A1A1A] border border-[#2A2A2A] text-[#444]'
+                        ? 'bg-[#3D4A54] border border-[#4A5661] text-[#444]'
                         : hasBadge
-                            ? 'bg-[#C8FF00] text-[#0D0D0D] hover:bg-[#d4ff33]'
-                            : 'bg-[#2A2A2A] text-white hover:bg-[#333]'
+                            ? 'bg-[#FFF34D] text-[#333E48] hover:bg-[#FFE633]'
+                            : 'bg-[#4A5661] text-white hover:bg-[#333]'
                 }`}
             >
                 {trialUsed ? 'Trial Already Used' : `Get ${pkg.name}`}
@@ -103,7 +103,7 @@ export default function Packages({ packages, activeSubscription }) {
     return (
         <AppLayout active="Packages">
             <div className="mb-6">
-                <h1 className="text-2xl font-black text-white">Packages</h1>
+                <h1 className="text-2xl font-black text-[#333E48]">Packages</h1>
                 <p className="text-sm text-[#666] mt-0.5">Top up your credits and keep training.</p>
             </div>
 
@@ -113,7 +113,7 @@ export default function Packages({ packages, activeSubscription }) {
             {packages.length === 0 ? (
                 <div className="text-center py-16">
                     <p className="text-4xl mb-3">📦</p>
-                    <p className="font-bold text-white">No packages available yet.</p>
+                    <p className="font-bold text-[#333E48]">No packages available yet.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-5">
@@ -123,7 +123,7 @@ export default function Packages({ packages, activeSubscription }) {
                 </div>
             )}
 
-            <div className="mt-8 bg-[#111] rounded-2xl border border-[#2A2A2A] p-4 text-xs text-[#555] text-center">
+            <div className="mt-8 bg-white/60 rounded-2xl border border-[#B8CDD8] p-4 text-xs text-[#6A7A85] text-center">
                 Credits are used to book classes (1 credit per class). Credits do not expire within the validity period.
             </div>
         </AppLayout>
