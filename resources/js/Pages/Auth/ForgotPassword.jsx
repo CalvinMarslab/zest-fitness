@@ -41,7 +41,7 @@ export default function ForgotPassword({ status }) {
                         autoFocus
                         required
                         placeholder="you@example.com"
-                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                        className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                     />
                     {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
                 </div>

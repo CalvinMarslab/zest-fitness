@@ -86,7 +86,7 @@ function DayTabs({ days, selectedDay, todayLabel, onSelect }) {
 
 function WorkoutBlock({ item }) {
     return (
-        <div className="bg-[#F5EEE0] rounded-2xl border border-[#DDD5C0] p-4 flex gap-3">
+        <div className="bg-[#CFE0EB] rounded-2xl border border-[#DDD5C0] p-4 flex gap-3">
             <span className={`shrink-0 self-start text-xs font-bold px-2 py-1 rounded-lg border ${typeStyle(item.type)}`}>
                 {item.type}
             </span>
@@ -119,7 +119,7 @@ function WeeklyOverview({ schedule, todayLabel }) {
                             isToday
                                 ? 'bg-[#FFF34D] text-[#333E48]'
                                 : isRest
-                                    ? 'bg-[#F5EEE0] text-[#333]'
+                                    ? 'bg-[#CFE0EB] text-[#333]'
                                     : 'bg-[#FFFFFF] text-[#666]',
                         ].join(' ')}
                     >
@@ -172,7 +172,7 @@ function ProgramDetail({ program }) {
                 </div>
 
                 {dayData.workout[0].type === 'Rest' ? (
-                    <div className="bg-[#F5EEE0] rounded-2xl border border-[#DDD5C0] p-6 text-center">
+                    <div className="bg-[#CFE0EB] rounded-2xl border border-[#DDD5C0] p-6 text-center">
                         <p className="text-3xl mb-2">😴</p>
                         <p className="font-bold text-[#888]">Rest Day</p>
                         <p className="text-xs mt-1 text-[#555]">{dayData.workout[0].sets}</p>

@@ -74,7 +74,7 @@ function Input({ type = 'text', value, onChange, autoComplete, autoFocus, ref: r
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             placeholder={placeholder}
-            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+            className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
         />
     );
 }
@@ -171,21 +171,21 @@ function UpdatePasswordForm() {
                     <input ref={currentPasswordInput} type="password" value={data.current_password}
                         onChange={(e) => setData('current_password', e.target.value)}
                         autoComplete="current-password"
-                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="New Password" error={errors.password}>
                     <input ref={passwordInput} type="password" value={data.password}
                         onChange={(e) => setData('password', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <Field label="Confirm Password" error={errors.password_confirmation}>
                     <input type="password" value={data.password_confirmation}
                         onChange={(e) => setData('password_confirmation', e.target.value)}
                         autoComplete="new-password"
-                        className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
+                        className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all" />
                 </Field>
 
                 <div className="flex items-center gap-3 mt-1">
@@ -248,7 +248,7 @@ function DeleteAccountForm() {
                                     onChange={(e) => setData('password', e.target.value)}
                                     autoFocus
                                     placeholder="Your current password"
-                                    className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
+                                    className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all placeholder:text-[#444]" />
                             </Field>
                             <div className="flex gap-3">
                                 <button type="button" onClick={() => { setConfirming(false); reset(); }}

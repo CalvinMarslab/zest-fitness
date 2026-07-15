@@ -16,7 +16,7 @@ export default function ResetPassword({ token, email }) {
         });
     };
 
-    const inputClass = "w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]";
+    const inputClass = "w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]";
     const labelClass = "block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5";
 
     return (

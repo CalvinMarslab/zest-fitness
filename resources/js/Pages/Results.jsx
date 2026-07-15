@@ -104,7 +104,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                                             'text-xs font-bold px-3 py-1.5 rounded-full border transition-all',
                                             form.data.exercise === s
                                                 ? 'bg-[#FFF34D] text-[#333E48] border-[#FFF34D]'
-                                                : 'bg-[#F5EEE0] text-[#6A7A00] border-[#DDD5C0] hover:border-[#BFD857]',
+                                                : 'bg-[#CFE0EB] text-[#6A7A00] border-[#DDD5C0] hover:border-[#BFD857]',
                                         ].join(' ')}
                                     >
                                         🏋️ {s}
@@ -115,7 +115,7 @@ function LogModal({ date, suggestions = [], onClose }) {
 
                         <input
                             autoFocus
-                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                            className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                             placeholder="e.g. Deadlift, 5K Run, Snatch"
                             value={form.data.exercise}
                             onChange={(e) => form.setData('exercise', e.target.value)}
@@ -126,7 +126,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                     <div>
                         <label className="block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5">Result</label>
                         <input
-                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+                            className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
                             placeholder="e.g. 120 kg, 22:30, 150 reps"
                             value={form.data.value}
                             onChange={(e) => form.setData('value', e.target.value)}
@@ -139,7 +139,7 @@ function LogModal({ date, suggestions = [], onClose }) {
                             Notes <span className="normal-case font-normal text-[#555]">(optional)</span>
                         </label>
                         <textarea
-                            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444] resize-none"
+                            className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444] resize-none"
                             rows={2}
                             placeholder="PR? Technique notes?"
                             value={form.data.notes}

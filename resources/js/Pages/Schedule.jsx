@@ -118,7 +118,7 @@ function ClassDetailModal({ gymClass, onClose }) {
                         ['Coach', gymClass.coach],
                         ['Capacity', `${gymClass.capacity} spots`],
                     ].map(([label, value]) => (
-                        <div key={label} className="bg-[#F5EEE0] rounded-2xl p-3 border border-[#DDD5C0]">
+                        <div key={label} className="bg-[#CFE0EB] rounded-2xl p-3 border border-[#DDD5C0]">
                             <p className="text-[10px] text-[#555] uppercase tracking-wider font-bold mb-1">{label}</p>
                             <p className="font-bold text-[#333E48] text-sm">{value}</p>
                         </div>

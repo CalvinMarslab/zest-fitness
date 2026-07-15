@@ -28,7 +28,7 @@ function Input({ type = 'text', id, name, value, onChange, autoComplete, autoFoc
             autoComplete={autoComplete}
             autoFocus={autoFocus}
             required
-            className="w-full rounded-xl bg-[#F5EEE0] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
+            className="w-full rounded-xl bg-[#CFE0EB] border border-[#DDD5C0] text-[#333E48] px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#FFF34D]/50 focus:border-[#FFF34D]/50 transition-all placeholder:text-[#444]"
         />
     );
 }
@@ -144,7 +144,7 @@ export default function Login({ status, canResetPassword }) {
             <Head title={tab === 'login' ? 'Sign In' : 'Create Account'} />
 
             {/* Tab toggle */}
-            <div className="flex bg-[#F5EEE0] rounded-2xl p-1 mb-6 border border-[#DDD5C0]">
+            <div className="flex bg-[#CFE0EB] rounded-2xl p-1 mb-6 border border-[#DDD5C0]">
                 {[['login', 'Sign In'], ['register', 'Register']].map(([key, label]) => (
                     <button
                         key={key}
