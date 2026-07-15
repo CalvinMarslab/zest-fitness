@@ -62,11 +62,11 @@ function PackageCard({ pkg, onSubscribe }) {
             </div>
 
             <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-2 bg-[#FFF34D]/5 border border-[#FFF34D]/20 rounded-xl px-3 py-2 w-full">
+                <div className="flex items-center gap-2 bg-[#CFE0EB]/30 border border-[#CFE0EB]/60 rounded-xl px-3 py-2 w-full">
                     <span className="text-xl">🎟</span>
                     <div>
-                        <p className="text-sm font-black text-[#FFF34D]">{pkg.credits} Credits</p>
-                        <p className="text-xs text-[#FFF34D]/50">Valid for {pkg.period_label}</p>
+                        <p className="text-sm font-black text-[#333E48]">{pkg.credits} Credits</p>
+                        <p className="text-xs text-[#5A7A8A]">Valid for {pkg.period_label}</p>
                     </div>
                 </div>
             </div>
