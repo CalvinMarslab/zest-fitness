@@ -130,9 +130,6 @@ function RegisterForm() {
                 {processing ? 'Creating account…' : 'Create Account'}
             </button>
 
-            <p className="text-xs text-center text-[#555]">
-                You'll receive <strong className="text-[#C8FF00]">10 free credits</strong> to start booking classes.
-            </p>
         </form>
     );
 }

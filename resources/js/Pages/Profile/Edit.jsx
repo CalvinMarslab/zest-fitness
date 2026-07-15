@@ -2,6 +2,54 @@ import { useRef, useState } from 'react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 
+// ─── Wallet card ──────────────────────────────────────────────────────────────
+
+function WalletCard({ subscription }) {
+    const { auth } = usePage().props;
+    const credits = auth?.user?.credits ?? 0;
+
+    const formatDate = (dateStr) => {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    };
+
+    return (
+        <div className="relative overflow-hidden rounded-3xl bg-[#C8FF00] p-5">
+            {/* Background decoration */}
+            <div className="absolute -right-6 -top-6 w-32 h-32 rounded-full bg-black/5" />
+            <div className="absolute -right-2 bottom-2 w-20 h-20 rounded-full bg-black/5" />
+
+            <div className="relative flex items-center justify-between">
+                <div>
+                    <p className="text-xs font-bold text-[#0D0D0D]/60 uppercase tracking-widest mb-1">Credit Wallet</p>
+                    <div className="flex items-end gap-1.5">
+                        <span className="text-4xl font-black text-[#0D0D0D] leading-none">{credits}</span>
+                        <span className="text-sm font-bold text-[#0D0D0D]/60 mb-0.5">credits</span>
+                    </div>
+
+                    {/* Expiry line */}
+                    {subscription ? (
+                        <p className={`text-xs mt-1 font-semibold ${subscription.is_expiring_soon ? 'text-red-700' : 'text-[#0D0D0D]/50'}`}>
+                            {subscription.is_expiring_soon ? '⚠️ ' : ''}Expires {formatDate(subscription.expires_at)}
+                        </p>
+                    ) : (
+                        <p className="text-xs text-[#0D0D0D]/50 mt-1">
+                            {credits === 0 ? 'No credits — top up to book classes' : 'No active subscription'}
+                        </p>
+                    )}
+                </div>
+
+                <Link
+                    href={route('packages')}
+                    className="shrink-0 flex items-center gap-1.5 bg-[#0D0D0D] text-[#C8FF00] text-xs font-black px-4 py-2.5 rounded-2xl hover:bg-[#1a1a1a] active:scale-95 transition-all"
+                >
+                    <span>+</span> Top Up
+                </Link>
+            </div>
+        </div>
+    );
+}
+
 // ─── Shared field components ──────────────────────────────────────────────────
 
 function Field({ label, error, children }) {
@@ -222,7 +270,7 @@ function DeleteAccountForm() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ mustVerifyEmail, status, subscription }) {
     return (
         <AppLayout active="Profile">
             <Head title="Profile" />
@@ -233,6 +281,7 @@ export default function Edit({ mustVerifyEmail, status }) {
             </div>
 
             <div className="flex flex-col gap-4">
+                <WalletCard subscription={subscription} />
                 <UpdateProfileForm mustVerifyEmail={mustVerifyEmail} status={status} />
                 <UpdatePasswordForm />
                 <DeleteAccountForm />

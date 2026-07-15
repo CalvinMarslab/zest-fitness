@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->unsignedInteger('credits')->default(0)->after('email');
+        Schema::table('gym_classes', function (Blueprint $table) {
+            $table->json('exercises')->nullable()->after('capacity');
         });
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('credits');
+        Schema::table('gym_classes', function (Blueprint $table) {
+            $table->dropColumn('exercises');
         });
     }
 };

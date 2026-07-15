@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ClassBooking;
 use App\Models\WorkoutResult;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +35,21 @@ class ResultsController extends Controller
                 'notes'    => $r->notes,
             ]);
 
+        // Exercises the coach set for the user's booked classes on the selected date
+        $suggestions = ClassBooking::where('user_id', $request->user()->id)
+            ->whereHas('gymClass', fn ($q) => $q->whereDate('start_time', $date))
+            ->with('gymClass:id,name,exercises')
+            ->get()
+            ->flatMap(fn ($b) => $b->gymClass?->exercises ?? [])
+            ->filter()
+            ->unique()
+            ->values();
+
         return Inertia::render('Results', [
             'results'      => $results,
             'selectedDate' => $date,
             'dates'        => $dates,
+            'suggestions'  => $suggestions,
         ]);
     }
 

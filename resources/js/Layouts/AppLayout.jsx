@@ -69,16 +69,16 @@ export default function AppLayout({ active, title, subtitle, children }) {
                     </Link>
 
                     <div className="flex items-center gap-3">
-                        {/* Credit badge */}
-                        <div className={[
-                            'flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border',
+                        {/* Credit badge — taps to packages/top-up */}
+                        <Link href={route('packages')} className={[
+                            'flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-opacity active:opacity-70',
                             credits > 0
                                 ? 'bg-[#C8FF00]/10 text-[#C8FF00] border-[#C8FF00]/30'
                                 : 'bg-red-500/10 text-red-400 border-red-500/30',
                         ].join(' ')}>
                             <span>🎟</span>
                             <span>{credits} cr</span>
-                        </div>
+                        </Link>
 
                     </div>
                 </div>

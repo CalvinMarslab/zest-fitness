@@ -14,6 +14,13 @@ class PackageController extends Controller
 {
     public function index(Request $request): Response
     {
+        // IDs of trial packages this user has already purchased
+        $usedTrialIds = $request->user()
+            ->subscriptions()
+            ->whereHas('package', fn ($q) => $q->where('is_trial', true))
+            ->pluck('package_id')
+            ->all();
+
         $packages = Package::where('is_active', true)
             ->orderBy('sort_order')
             ->get()
@@ -26,6 +33,8 @@ class PackageController extends Controller
                 'period_label' => $p->period_label,
                 'price'        => (float) $p->price,
                 'badge'        => $p->badge,
+                'is_trial'     => $p->is_trial,
+                'trial_used'   => $p->is_trial && in_array($p->id, $usedTrialIds),
             ]);
 
         $active = $request->user()
@@ -46,7 +55,14 @@ class PackageController extends Controller
     {
         abort_if(! $package->is_active, 404);
 
-        $user  = $request->user();
+        $user = $request->user();
+
+        // Trial packages can only be purchased once per user
+        if ($package->is_trial) {
+            $alreadyUsed = $user->subscriptions()->where('package_id', $package->id)->exists();
+            abort_if($alreadyUsed, 403, 'You have already used the trial package.');
+        }
+
         $now   = Carbon::now();
 
         // Create subscription record

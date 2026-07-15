@@ -15,8 +15,17 @@ class AdminClassController extends Controller
     public function index(): Response
     {
         $classes = GymClass::withCount('bookings')
+            ->with(['bookings.user:id,name,email'])
             ->orderBy('start_time', 'desc')
-            ->get();
+            ->get()
+            ->map(fn ($c) => [
+                ...$c->toArray(),
+                'attendees' => $c->bookings->map(fn ($b) => [
+                    'id'    => $b->user->id,
+                    'name'  => $b->user->name,
+                    'email' => $b->user->email,
+                ])->values(),
+            ]);
 
         return Inertia::render('Admin/Classes', ['classes' => $classes]);
     }
@@ -81,6 +90,8 @@ class AdminClassController extends Controller
             'coach'      => 'sometimes|string|max:255',
             'start_time' => 'sometimes|date',
             'capacity'   => 'sometimes|integer|min:1|max:100',
+            'exercises'  => 'sometimes|nullable|array',
+            'exercises.*' => 'string|max:100',
         ]);
 
         $gymClass->update($data);

@@ -26,16 +26,21 @@ function ActiveBanner({ sub }) {
 }
 
 function PackageCard({ pkg, onSubscribe }) {
-    const hasBadge = !!pkg.badge;
+    const hasBadge  = !!pkg.badge;
+    const trialUsed = pkg.trial_used;
 
     return (
         <div className={`relative bg-[#1A1A1A] rounded-2xl border p-5 flex flex-col ${
-            hasBadge ? 'border-[#C8FF00]/40' : 'border-[#2A2A2A]'
+            trialUsed ? 'border-[#2A2A2A] opacity-60' : hasBadge ? 'border-[#C8FF00]/40' : 'border-[#2A2A2A]'
         }`}>
             {hasBadge && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="bg-[#C8FF00] text-[#0D0D0D] text-xs font-black px-4 py-1 rounded-full whitespace-nowrap">
-                        {pkg.badge}
+                    <span className={`text-xs font-black px-4 py-1 rounded-full whitespace-nowrap ${
+                        trialUsed
+                            ? 'bg-[#333] text-[#666]'
+                            : 'bg-[#C8FF00] text-[#0D0D0D]'
+                    }`}>
+                        {trialUsed ? '✓ Trial Used' : pkg.badge}
                     </span>
                 </div>
             )}
@@ -66,23 +71,24 @@ function PackageCard({ pkg, onSubscribe }) {
                 </div>
             </div>
 
-            {pkg.price > 0 && (
-                <p className="text-xs text-[#555] mb-4">
-                    ≈ RM {(pkg.price / pkg.credits).toFixed(2)} per credit
-                </p>
+            {pkg.is_trial && (
+                <p className="text-xs text-amber-500/80 mb-4">⚡ One-time trial — available once per member</p>
             )}
 
             <div className="flex-1" />
 
             <button
-                onClick={() => onSubscribe(pkg)}
-                className={`w-full py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] ${
-                    hasBadge
-                        ? 'bg-[#C8FF00] text-[#0D0D0D] hover:bg-[#d4ff33]'
-                        : 'bg-[#2A2A2A] text-white hover:bg-[#333]'
+                onClick={() => !trialUsed && onSubscribe(pkg)}
+                disabled={trialUsed}
+                className={`w-full py-3 rounded-2xl font-black text-sm transition-all active:scale-[0.98] disabled:cursor-not-allowed ${
+                    trialUsed
+                        ? 'bg-[#1A1A1A] border border-[#2A2A2A] text-[#444]'
+                        : hasBadge
+                            ? 'bg-[#C8FF00] text-[#0D0D0D] hover:bg-[#d4ff33]'
+                            : 'bg-[#2A2A2A] text-white hover:bg-[#333]'
                 }`}
             >
-                Get {pkg.name}
+                {trialUsed ? 'Trial Already Used' : `Get ${pkg.name}`}
             </button>
         </div>
     );

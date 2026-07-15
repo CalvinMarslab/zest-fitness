@@ -251,12 +251,65 @@ function AddClassForm({ onSuccess }) {
 
 // ── Edit Modal (single class only) ────────────────────────────────────────────
 
+function ExerciseEditor({ exercises, onChange }) {
+    const [draft, setDraft] = useState('');
+
+    function add() {
+        const trimmed = draft.trim();
+        if (!trimmed || exercises.includes(trimmed)) { setDraft(''); return; }
+        onChange([...exercises, trimmed]);
+        setDraft('');
+    }
+
+    function remove(ex) {
+        onChange(exercises.filter((e) => e !== ex));
+    }
+
+    return (
+        <div>
+            <label className="text-xs font-semibold text-gray-500 uppercase">Today's Exercises (WOD)</label>
+            <p className="text-xs text-gray-400 mt-0.5 mb-2">Members will see these as suggestions when logging results.</p>
+
+            {/* Existing exercises */}
+            {exercises.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                    {exercises.map((ex) => (
+                        <span key={ex} className="flex items-center gap-1 text-xs bg-orange-50 border border-orange-200 text-orange-700 px-2.5 py-1 rounded-full font-medium">
+                            {ex}
+                            <button type="button" onClick={() => remove(ex)} className="text-orange-400 hover:text-orange-600 font-bold leading-none">×</button>
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {/* Add input */}
+            <div className="flex gap-2">
+                <input
+                    className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    placeholder="e.g. Back Squat, Double Unders, Fran…"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+                />
+                <button
+                    type="button"
+                    onClick={add}
+                    className="px-3 py-2 rounded-xl bg-orange-100 text-orange-600 text-sm font-semibold hover:bg-orange-200 transition-colors"
+                >
+                    + Add
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function EditModal({ gymClass, onClose }) {
     const form = useForm({
         name:       gymClass.name,
         coach:      gymClass.coach,
         start_time: toLocalInputDT(gymClass.start_time),
         capacity:   gymClass.capacity,
+        exercises:  gymClass.exercises ?? [],
     });
 
     function submit(e) {
@@ -280,6 +333,10 @@ function EditModal({ gymClass, onClose }) {
                             required
                         />
                     </div>
+                    <ExerciseEditor
+                        exercises={form.data.exercises}
+                        onChange={(ex) => form.setData('exercises', ex)}
+                    />
                     <div className="flex gap-2 mt-2">
                         <button type="button" onClick={onClose}
                             className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
@@ -294,11 +351,61 @@ function EditModal({ gymClass, onClose }) {
     );
 }
 
+// ── Attendees Modal ────────────────────────────────────────────────────────────
+
+function AttendeesModal({ gymClass, onClose }) {
+    const { attendees, name, start_time, bookings_count, capacity } = gymClass;
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-start justify-between mb-4">
+                    <div>
+                        <h2 className="font-bold text-lg text-gray-900">{name}</h2>
+                        <p className="text-sm text-gray-400">{formatDT(start_time)}</p>
+                    </div>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${bookings_count >= capacity ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                        {bookings_count}/{capacity} booked
+                    </span>
+                </div>
+
+                {attendees.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                        <p className="text-3xl mb-2">📭</p>
+                        <p className="text-sm">No bookings yet</p>
+                    </div>
+                ) : (
+                    <ul className="divide-y divide-gray-50">
+                        {attendees.map((a, i) => (
+                            <li key={a.id} className="flex items-center gap-3 py-2.5">
+                                <span className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 text-xs font-bold flex items-center justify-center shrink-0">
+                                    {a.name[0].toUpperCase()}
+                                </span>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 truncate">{a.name}</p>
+                                    <p className="text-xs text-gray-400 truncate">{a.email}</p>
+                                </div>
+                                <span className="ml-auto text-xs text-gray-300 shrink-0">#{i + 1}</span>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <button onClick={onClose}
+                    className="mt-4 w-full py-2 rounded-xl border text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    Close
+                </button>
+            </div>
+        </div>
+    );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Classes({ classes }) {
-    const [editing, setEditing]   = useState(null);
-    const [showForm, setShowForm] = useState(false);
+    const [editing, setEditing]       = useState(null);
+    const [attendees, setAttendees]   = useState(null);
+    const [showForm, setShowForm]     = useState(false);
 
     function deleteClass(c) {
         if (!confirm(`Delete "${c.name}"? All bookings will be removed.`)) return;
@@ -342,9 +449,12 @@ export default function Classes({ classes }) {
                                     <td className="px-4 py-3 text-gray-500">{formatDT(c.start_time)}</td>
                                     <td className="px-4 py-3 text-gray-500">{c.capacity}</td>
                                     <td className="px-4 py-3">
-                                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${full ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                        <button
+                                            onClick={() => setAttendees(c)}
+                                            className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-opacity hover:opacity-70 ${full ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
+                                        >
                                             {c.bookings_count}/{c.capacity}
-                                        </span>
+                                        </button>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
@@ -362,7 +472,8 @@ export default function Classes({ classes }) {
                 </div>
             </div>
 
-            {editing && <EditModal gymClass={editing} onClose={() => setEditing(null)} />}
+            {editing   && <EditModal gymClass={editing} onClose={() => setEditing(null)} />}
+            {attendees && <AttendeesModal gymClass={attendees} onClose={() => setAttendees(null)} />}
         </AdminLayout>
     );
 }

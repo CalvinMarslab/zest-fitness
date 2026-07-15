@@ -61,8 +61,13 @@ function DateStrip({ dates, selectedDate, today }) {
 
 // ─── Log Result Modal ─────────────────────────────────────────────────────────
 
-function LogModal({ date, onClose }) {
-    const form = useForm({ exercise: '', value: '', notes: '', date });
+function LogModal({ date, suggestions = [], onClose }) {
+    const form = useForm({
+        exercise: suggestions.length === 1 ? suggestions[0] : '',
+        value: '',
+        notes: '',
+        date,
+    });
 
     function submit(e) {
         e.preventDefault();
@@ -86,7 +91,30 @@ function LogModal({ date, onClose }) {
                 <form onSubmit={submit} className="flex flex-col gap-4">
                     <div>
                         <label className="block text-xs font-bold text-[#888] uppercase tracking-widest mb-1.5">Exercise</label>
+
+                        {/* Class suggestions */}
+                        {suggestions.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {suggestions.map((s) => (
+                                    <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => form.setData('exercise', s)}
+                                        className={[
+                                            'text-xs font-bold px-3 py-1.5 rounded-full border transition-all',
+                                            form.data.exercise === s
+                                                ? 'bg-[#C8FF00] text-[#0D0D0D] border-[#C8FF00]'
+                                                : 'bg-[#111] text-[#C8FF00] border-[#C8FF00]/30 hover:border-[#C8FF00]',
+                                        ].join(' ')}
+                                    >
+                                        🏋️ {s}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
                         <input
+                            autoFocus
                             className="w-full rounded-xl bg-[#111] border border-[#2A2A2A] text-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#C8FF00]/50 focus:border-[#C8FF00]/50 transition-all placeholder:text-[#444]"
                             placeholder="e.g. Deadlift, 5K Run, Snatch"
                             value={form.data.exercise}
@@ -190,7 +218,7 @@ function ResultCard({ result, isCurrentUser, selectedDate }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function Results({ results, selectedDate, dates }) {
+export default function Results({ results, selectedDate, dates, suggestions = [] }) {
     const { auth } = usePage().props;
     const today    = new Date().toISOString().slice(0, 10);
     const [showLog, setShowLog] = useState(false);
@@ -234,7 +262,7 @@ export default function Results({ results, selectedDate, dates }) {
             )}
 
             {showLog && (
-                <LogModal date={selectedDate} onClose={() => setShowLog(false)} />
+                <LogModal date={selectedDate} suggestions={suggestions} onClose={() => setShowLog(false)} />
             )}
         </AppLayout>
     );

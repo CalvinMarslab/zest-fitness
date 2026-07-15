@@ -18,9 +18,15 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $sub = $request->user()->activeSubscription();
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'mustVerifyEmail'  => $request->user() instanceof MustVerifyEmail,
+            'status'           => session('status'),
+            'subscription'     => $sub ? [
+                'expires_at' => $sub->expires_at->toDateString(),
+                'is_expiring_soon' => $sub->expires_at->diffInDays(now()) <= 7,
+            ] : null,
         ]);
     }
 
