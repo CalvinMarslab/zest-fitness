@@ -166,6 +166,8 @@ export default function Login({ status, canResetPassword }) {
                 ? <LoginForm status={status} canResetPassword={canResetPassword} />
                 : <RegisterForm />
             }
+
+            <p className="text-center text-[10px] text-[#aaa] mt-6">v1.1.0</p>
         </GuestLayout>
     );
 }
