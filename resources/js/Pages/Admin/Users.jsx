@@ -5,14 +5,21 @@ import AdminLayout from '@/Layouts/AdminLayout';
 // ─── Edit modal ───────────────────────────────────────────────────────────────
 
 function EditUserModal({ user, onClose }) {
+    const originalCredits = user.credits;
     const form = useForm({
-        name:     user.name,
-        credits:  user.credits,
-        is_admin: user.is_admin,
+        name:           user.name,
+        credits:        user.credits,
+        is_admin:       user.is_admin,
+        credit_reason:  '',
     });
+
+    const creditDelta = form.data.credits - originalCredits;
 
     function submit(e) {
         e.preventDefault();
+        if (creditDelta !== 0 && !form.data.credit_reason.trim()) {
+            return alert('Please enter a reason for the credit adjustment.');
+        }
         form.patch(route('admin.users.update', user.id), { onSuccess: onClose });
     }
 
@@ -31,13 +38,32 @@ function EditUserModal({ user, onClose }) {
                     </div>
                     <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase">Credits</label>
-                        <input
-                            type="number" min="0"
-                            className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                            value={form.data.credits}
-                            onChange={(e) => form.setData('credits', parseInt(e.target.value))}
-                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <input
+                                type="number" min="0"
+                                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                                value={form.data.credits}
+                                onChange={(e) => form.setData('credits', parseInt(e.target.value) || 0)}
+                            />
+                            {creditDelta !== 0 && (
+                                <span className={`text-sm font-bold whitespace-nowrap ${creditDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                    {creditDelta > 0 ? `+${creditDelta}` : creditDelta}
+                                </span>
+                            )}
+                        </div>
+                        {creditDelta !== 0 && (
+                            <div className="mt-2">
+                                <label className="text-xs font-semibold text-gray-500 uppercase">Reason for adjustment <span className="text-red-400">*</span></label>
+                                <input
+                                    className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                                    placeholder="e.g. Makeup class, bonus, correction…"
+                                    value={form.data.credit_reason}
+                                    onChange={(e) => form.setData('credit_reason', e.target.value)}
+                                />
+                            </div>
+                        )}
                     </div>
+
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                         <input
                             type="checkbox"
@@ -47,6 +73,7 @@ function EditUserModal({ user, onClose }) {
                         />
                         Admin access
                     </label>
+
                     <div className="flex gap-2 mt-2">
                         <button type="button" onClick={onClose}
                             className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
@@ -103,7 +130,7 @@ function Tab({ active, onClick, children, count }) {
     );
 }
 
-// ─── Shared avatar cell ───────────────────────────────────────────────────────
+// ─── Shared avatar ────────────────────────────────────────────────────────────
 
 function Avatar({ name, color = 'orange' }) {
     const styles = {
@@ -114,6 +141,15 @@ function Avatar({ name, color = 'orange' }) {
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${styles[color]}`}>
             {name[0].toUpperCase()}
         </div>
+    );
+}
+
+// ─── Delete confirmation ──────────────────────────────────────────────────────
+
+function confirmDelete(user) {
+    const role = user.is_admin ? 'admin account' : 'member account';
+    return confirm(
+        `Delete ${user.name}?\n\nThis will permanently remove their ${role}, all bookings, and activity history. This cannot be undone.`
     );
 }
 
@@ -153,11 +189,11 @@ function TeamTable({ team, onEdit, onDelete }) {
                                 {new Date(u.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </td>
                             <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <button onClick={() => onEdit(u)}
                                         className="text-xs text-orange-500 hover:text-orange-700 font-medium">Edit</button>
                                     <button onClick={() => onDelete(u)}
-                                        className="text-xs text-red-400 hover:text-red-600 font-medium">Delete</button>
+                                        className="text-xs text-gray-300 hover:text-red-400 font-medium transition-colors">Delete</button>
                                 </div>
                             </td>
                         </tr>
@@ -206,11 +242,11 @@ function MembersTable({ customers, onEdit, onDelete }) {
                             <td className="px-4 py-3 text-gray-500">{u.bookings_count}</td>
                             <td className="px-4 py-3 text-gray-500">{u.activities_count}</td>
                             <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <button onClick={() => onEdit(u)}
                                         className="text-xs text-orange-500 hover:text-orange-700 font-medium">Edit</button>
                                     <button onClick={() => onDelete(u)}
-                                        className="text-xs text-red-400 hover:text-red-600 font-medium">Delete</button>
+                                        className="text-xs text-gray-300 hover:text-red-400 font-medium transition-colors">Delete</button>
                                 </div>
                             </td>
                         </tr>
@@ -229,7 +265,7 @@ export default function Users({ team, customers, stats }) {
     const [editing, setEditing] = useState(null);
 
     function deleteUser(user) {
-        if (!confirm(`Delete ${user.name}? This cannot be undone.`)) return;
+        if (!confirmDelete(user)) return;
         router.delete(route('admin.users.destroy', user.id));
     }
 

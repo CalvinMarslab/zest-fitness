@@ -3,18 +3,25 @@ import { router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
 const PERIOD_OPTIONS = [
-    { label: '1 Month',   days: 30  },
-    { label: '2 Months',  days: 60  },
-    { label: '3 Months',  days: 90  },
-    { label: '6 Months',  days: 180 },
-    { label: '12 Months', days: 365 },
+    { label: '7 Days (Trial)',  days: 7   },
+    { label: '14 Days (Trial)', days: 14  },
+    { label: '1 Month',        days: 30  },
+    { label: '2 Months',       days: 60  },
+    { label: '3 Months',       days: 90  },
+    { label: '6 Months',       days: 180 },
+    { label: '12 Months',      days: 365 },
 ];
 
+const UNLIMITED = 999;
+
 function PackageForm({ initial = {}, onSubmit, onCancel }) {
+    const isUnlimitedInit = (initial.credits ?? 10) >= UNLIMITED;
+    const [unlimited, setUnlimited] = useState(isUnlimitedInit);
+
     const form = useForm({
         name:        initial.name        ?? '',
         description: initial.description ?? '',
-        credits:     initial.credits     ?? 10,
+        credits:     isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
         period_days: initial.period_days ?? 30,
         price:       initial.price       ?? '',
         badge:       initial.badge       ?? '',
@@ -22,8 +29,15 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
         sort_order:  initial.sort_order  ?? 0,
     });
 
+    function toggleUnlimited(checked) {
+        setUnlimited(checked);
+        form.setData('credits', checked ? UNLIMITED : 10);
+    }
+
     function submit(e) {
         e.preventDefault();
+        if (parseFloat(form.data.price) < 0) return alert('Price cannot be negative.');
+        if (!unlimited && form.data.credits < 1) return alert('Credits must be at least 1.');
         onSubmit(form);
     }
 
@@ -49,14 +63,22 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
             {/* Credits */}
             <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase">Credits</label>
-                <input type="number" min="1"
-                    className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                    value={form.data.credits} onChange={(e) => form.setData('credits', parseInt(e.target.value))} required />
+                <div className="flex items-center gap-2 mt-1">
+                    <input type="number" min="1" disabled={unlimited}
+                        className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:bg-gray-50 disabled:text-gray-400"
+                        value={unlimited ? '∞' : form.data.credits}
+                        onChange={(e) => form.setData('credits', parseInt(e.target.value))} />
+                </div>
+                <label className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 cursor-pointer">
+                    <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(e.target.checked)}
+                        className="accent-orange-500" />
+                    Unlimited access
+                </label>
             </div>
 
             {/* Period */}
             <div>
-                <label className="text-xs font-semibold text-gray-500 uppercase">Period</label>
+                <label className="text-xs font-semibold text-gray-500 uppercase">Validity Period</label>
                 <select className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 bg-white"
                     value={form.data.period_days} onChange={(e) => form.setData('period_days', parseInt(e.target.value))}>
                     {PERIOD_OPTIONS.map((o) => (
@@ -129,6 +151,8 @@ function EditModal({ pkg, onClose }) {
 }
 
 function periodLabel(days) {
+    if (days === 7)  return '7 Days';
+    if (days === 14) return '14 Days';
     const months = Math.round(days / 30);
     if (months === 1)  return '1 Month';
     if (months < 12)   return `${months} Months`;
@@ -144,7 +168,11 @@ export default function Packages({ packages }) {
     }
 
     function deletePackage(pkg) {
-        if (!confirm(`Delete "${pkg.name}"?`)) return;
+        const hasSubscribers = pkg.subscriptions_count > 0;
+        const msg = hasSubscribers
+            ? `Delete "${pkg.name}"?\n\nWarning: ${pkg.subscriptions_count} active subscription${pkg.subscriptions_count !== 1 ? 's' : ''} will be affected. Members will keep their current credits but cannot renew this plan.`
+            : `Delete "${pkg.name}"? This cannot be undone.`;
+        if (!confirm(msg)) return;
         router.delete(route('admin.packages.destroy', pkg.id));
     }
 
@@ -184,7 +212,7 @@ export default function Packages({ packages }) {
 
                         <div className="flex items-center gap-2 mb-3">
                             <span className="bg-orange-50 text-orange-600 text-sm font-bold px-3 py-1 rounded-full">
-                                {pkg.credits} credits
+                                {pkg.credits >= UNLIMITED ? '∞ Unlimited' : `${pkg.credits} credits`}
                             </span>
                             {!pkg.is_active && (
                                 <span className="bg-gray-100 text-gray-400 text-xs px-2 py-1 rounded-full">Inactive</span>
@@ -205,8 +233,13 @@ export default function Packages({ packages }) {
                                 Edit
                             </button>
                             <button onClick={() => deletePackage(pkg)}
-                                className="flex-1 py-1.5 rounded-xl border text-xs font-medium text-red-400 hover:bg-red-50">
-                                Delete
+                                className={[
+                                    'py-1.5 px-3 rounded-xl border text-xs font-medium transition-colors',
+                                    pkg.subscriptions_count > 0
+                                        ? 'text-gray-400 border-gray-200 hover:bg-red-50 hover:text-red-400 hover:border-red-200'
+                                        : 'text-red-400 hover:bg-red-50',
+                                ].join(' ')}>
+                                Delete{pkg.subscriptions_count > 0 ? ` (${pkg.subscriptions_count})` : ''}
                             </button>
                         </div>
                     </div>

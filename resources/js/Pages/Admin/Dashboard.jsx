@@ -2,7 +2,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import { Link } from '@inertiajs/react';
 import { parseLocalDT } from '@/utils/date';
 
-function StatCard({ label, value, color = 'orange' }) {
+function StatCard({ label, value, sub, color = 'orange' }) {
     const colors = {
         orange: 'bg-orange-50 text-orange-600 border-orange-100',
         blue:   'bg-blue-50   text-blue-600   border-blue-100',
@@ -13,6 +13,7 @@ function StatCard({ label, value, color = 'orange' }) {
         <div className={`rounded-2xl border p-5 ${colors[color]}`}>
             <p className="text-3xl font-bold">{value}</p>
             <p className="text-sm mt-1 font-medium opacity-80">{label}</p>
+            {sub && <p className="text-xs mt-0.5 opacity-60">{sub}</p>}
         </div>
     );
 }
@@ -29,8 +30,8 @@ export default function Dashboard({ stats }) {
         <AdminLayout title="Dashboard">
             {/* Stat cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard label="Total Members"    value={stats.total_users}    color="orange" />
-                <StatCard label="Total Classes"    value={stats.total_classes}  color="blue"   />
+                <StatCard label="Members"         value={stats.total_members}  sub={`+ ${stats.total_admins} admin${stats.total_admins !== 1 ? 's' : ''}`} color="orange" />
+                <StatCard label="Upcoming Classes" value={stats.upcoming_count} sub={`${stats.past_count} past`} color="blue" />
                 <StatCard label="Bookings Today"   value={stats.bookings_today} color="green"  />
                 <StatCard label="Results Today"    value={stats.results_today}  color="purple" />
             </div>
