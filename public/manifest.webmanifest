@@ -1,0 +1,24 @@
+{
+    "name": "Zest Athletic",
+    "short_name": "Zest",
+    "description": "Book classes and track your fitness at Zest Athletic",
+    "start_url": "/schedule",
+    "display": "standalone",
+    "background_color": "#CFE0EB",
+    "theme_color": "#333E48",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}

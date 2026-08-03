@@ -400,80 +400,145 @@ function AttendeesModal({ gymClass, onClose }) {
     );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Week View (from templates) ────────────────────────────────────────────────
 
-export default function Classes({ classes }) {
-    const [editing, setEditing]       = useState(null);
-    const [attendees, setAttendees]   = useState(null);
-    const [showForm, setShowForm]     = useState(false);
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    function deleteClass(c) {
-        if (!confirm(`Delete "${c.name}"? All bookings will be removed.`)) return;
-        router.delete(route('admin.classes.destroy', c.id));
+function WeekView({ templates }) {
+    const byDay = Array.from({ length: 7 }, (_, i) =>
+        templates
+            .filter((t) => t.day_of_week === i)
+            .sort((a, b) => a.start_time.localeCompare(b.start_time))
+    );
+    const activeDays = byDay.map((_, i) => i).filter((i) => byDay[i].length > 0);
+
+    if (activeDays.length === 0) {
+        return (
+            <div className="text-center py-16 text-gray-400">
+                <p className="text-3xl mb-2">📅</p>
+                <p className="text-sm">No schedule templates yet</p>
+            </div>
+        );
     }
 
     return (
+        <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${activeDays.length}, minmax(0, 1fr))` }}>
+            {activeDays.map((dayIdx) => (
+                <div key={dayIdx}>
+                    <div className="text-center mb-2">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                            {DAY_NAMES[dayIdx]}
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        {byDay[dayIdx].map((t) => (
+                            <button
+                                key={t.id}
+                                onClick={() => router.get(route('admin.classes.slot'), { template_id: t.id })}
+                                className={[
+                                    'border rounded-xl p-3 hover:shadow-sm active:scale-[0.98] transition-all text-left w-full',
+                                    t.is_active
+                                        ? 'bg-white border-gray-100 hover:border-orange-300'
+                                        : 'bg-gray-50 border-dashed border-gray-200 opacity-60',
+                                ].join(' ')}
+                            >
+                                <p className="text-xs font-bold text-orange-500 mb-0.5">{t.start_time}</p>
+                                <p className="text-sm font-semibold text-gray-900 leading-tight">{t.name}</p>
+                                <p className="text-xs text-gray-400">{t.coach}</p>
+                                {!t.is_active && (
+                                    <span className="text-[10px] text-gray-400 font-medium">Inactive</span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function Classes({ templates, specials }) {
+    const [showSpecial, setShowSpecial] = useState(false);
+
+    return (
         <AdminLayout title="Classes">
-            {/* Add class panel */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-semibold text-gray-900">Add New Class</h2>
+            {/* Weekly schedule (templates) */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+                <div className="px-4 py-3 border-b border-gray-100">
+                    <span className="text-sm font-semibold text-gray-900">Weekly Schedule</span>
+                    <span className="text-xs text-gray-400 ml-2">{templates.length} slots · click a slot to manage</span>
+                </div>
+                <div className="p-4">
+                    <WeekView templates={templates} />
+                </div>
+            </div>
+
+            {/* Special one-off classes */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div>
+                        <span className="text-sm font-semibold text-gray-900">Special Classes</span>
+                        <span className="text-xs text-gray-400 ml-2">One-off sessions not in the weekly schedule</span>
+                    </div>
                     <button
-                        onClick={() => setShowForm(!showForm)}
+                        onClick={() => setShowSpecial(!showSpecial)}
                         className="text-sm text-orange-500 hover:text-orange-700 font-medium"
                     >
-                        {showForm ? 'Hide' : '+ New Class'}
+                        {showSpecial ? 'Hide' : '+ Add Special Class'}
                     </button>
                 </div>
-                {showForm && <AddClassForm onSuccess={() => setShowForm(false)} />}
-            </div>
-
-            {/* Classes table */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-[560px]">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            {['Class', 'Coach', 'Start Time', 'Capacity', 'Booked', ''].map((h) => (
-                                <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {classes.map((c) => {
-                            const full = c.bookings_count >= c.capacity;
-                            return (
-                                <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
-                                    <td className="px-4 py-3 text-gray-500">{c.coach}</td>
-                                    <td className="px-4 py-3 text-gray-500">{formatDT(c.start_time)}</td>
-                                    <td className="px-4 py-3 text-gray-500">{c.capacity}</td>
-                                    <td className="px-4 py-3">
-                                        <button
-                                            onClick={() => setAttendees(c)}
-                                            className={`text-xs font-semibold px-2 py-0.5 rounded-full transition-opacity hover:opacity-70 ${full ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}
-                                        >
-                                            {c.bookings_count}/{c.capacity}
-                                        </button>
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <div className="flex items-center gap-2">
-                                            <button onClick={() => setEditing(c)}
-                                                className="text-xs text-orange-500 hover:text-orange-700 font-medium">Edit</button>
-                                            <button onClick={() => deleteClass(c)}
-                                                className="text-xs text-red-400 hover:text-red-600 font-medium">Delete</button>
-                                        </div>
-                                    </td>
+                {showSpecial && (
+                    <div className="p-5 border-b border-gray-100">
+                        <AddClassForm onSuccess={() => setShowSpecial(false)} />
+                    </div>
+                )}
+                {specials.length === 0 ? (
+                    <div className="text-center py-10 text-gray-400">
+                        <p className="text-sm">No special classes added</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm min-w-[500px]">
+                            <thead className="bg-gray-50 border-b border-gray-100">
+                                <tr>
+                                    {['Class', 'Coach', 'Start Time', 'Capacity', 'Booked', ''].map((h) => (
+                                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
+                                    ))}
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {specials.map((c) => {
+                                    const full = c.bookings_count >= c.capacity;
+                                    return (
+                                        <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
+                                            <td className="px-4 py-3 text-gray-500">{c.coach}</td>
+                                            <td className="px-4 py-3 text-gray-500">{formatDT(c.start_time)}</td>
+                                            <td className="px-4 py-3 text-gray-500">{c.capacity}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${full ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                                    {c.bookings_count}/{c.capacity}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <button
+                                                    onClick={() => {
+                                                        if (!confirm(`Delete "${c.name}"?`)) return;
+                                                        router.delete(route('admin.classes.destroy', c.id));
+                                                    }}
+                                                    className="text-xs text-red-400 hover:text-red-600 font-medium"
+                                                >Delete</button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
-
-            {editing   && <EditModal gymClass={editing} onClose={() => setEditing(null)} />}
-            {attendees && <AttendeesModal gymClass={attendees} onClose={() => setAttendees(null)} />}
         </AdminLayout>
     );
 }

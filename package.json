@@ -4,9 +4,18 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "cap:sync": "npx cap sync",
+        "cap:ios": "npx cap open ios",
+        "cap:android": "npx cap open android"
     },
     "dependencies": {
+        "@capacitor/android": "^8.5.0",
+        "@capacitor/cli": "^8.5.0",
+        "@capacitor/core": "^8.5.0",
+        "@capacitor/ios": "^8.5.0",
+        "@capacitor/splash-screen": "^8.0.2",
+        "@capacitor/status-bar": "^8.0.3",
         "@inertiajs/react": "^2.0.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0"
@@ -25,6 +34,7 @@
         "react": "^18.2.0",
         "react-dom": "^18.2.0",
         "tailwindcss": "^3.2.1",
+        "typescript": "^7.0.2",
         "vite": "^8.0.0"
     }
 }

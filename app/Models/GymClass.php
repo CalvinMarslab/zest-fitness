@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['name', 'coach', 'start_time', 'capacity', 'exercises'])]
+#[Fillable(['template_id', 'name', 'coach', 'start_time', 'capacity', 'exercises', 'wod_type', 'wod_duration', 'wod_config', 'is_cancelled'])]
 class GymClass extends Model
 {
     use HasFactory;
@@ -18,6 +18,8 @@ class GymClass extends Model
             'start_time' => 'datetime',
             'capacity'   => 'integer',
             'exercises'  => 'array',
+            'wod_config' => 'array',
+            'is_cancelled' => 'boolean',
         ];
     }
 

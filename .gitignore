@@ -1,5 +1,7 @@
 *.log
 .DS_Store
+/ios
+/android
 /.claude
 .env
 .env.backup
