@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gym_classes', function (Blueprint $table) {
-            $table->foreignId('template_id')->nullable()->after('id')
-                  ->constrained('class_templates')->nullOnDelete();
+            if (!Schema::hasColumn('gym_classes', 'template_id')) {
+                $table->foreignId('template_id')->nullable()->after('id')
+                      ->constrained('class_templates')->nullOnDelete();
+            }
         });
     }
 

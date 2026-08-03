@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gym_classes', function (Blueprint $table) {
-            $table->string('wod_type')->nullable()->after('exercises');
+            if (!Schema::hasColumn('gym_classes', 'wod_type')) {
+                $table->string('wod_type')->nullable()->after('exercises');
+            }
         });
     }
 
