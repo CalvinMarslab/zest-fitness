@@ -121,7 +121,7 @@ export default function AppLayout({ active, title, subtitle, children }) {
                             <ActivityIcon active={false} />
                         </div>
                         <span className={`text-[10px] font-semibold ${active === 'Training' ? 'text-[#333E48]' : 'text-[#9AA5AE]'}`}>
-                            Record
+                            Training
                         </span>
                     </Link>
 

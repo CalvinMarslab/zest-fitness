@@ -147,6 +147,8 @@ class AdminClassController extends Controller
         ])
             ->with(['bookings' => fn ($q) => $q->with('user:id,name,email')->orderBy('status')->orderBy('queue_position')])
             ->where('template_id', $templateId)
+            ->where('start_time', '>=', Carbon::now()->startOfWeek())
+            ->where('start_time', '<=', Carbon::now()->startOfWeek()->addWeeks(8))
             ->orderBy('start_time')
             ->get()
             ->map(fn ($c) => [

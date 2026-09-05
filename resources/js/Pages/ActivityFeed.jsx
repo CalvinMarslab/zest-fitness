@@ -42,17 +42,24 @@ function MapPlaceholder({ seed = 0 }) {
 
     return (
         <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" className="w-full h-full" aria-hidden="true">
-            <rect width="200" height="120" fill="#111" />
-            {[0, 1, 2, 3, 4].map((i) => (
-                <g key={i}>
-                    <line x1={i * 40} y1="0" x2={i * 40} y2="120" stroke="#FFFFFF" strokeWidth="4" />
-                    <line x1="0" y1={i * 24} x2="200" y2={i * 24} stroke="#FFFFFF" strokeWidth="4" />
-                </g>
-            ))}
-            <path d={d} fill="none" stroke="#FFF34D" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.2" />
-            <path d={d} fill="none" stroke="#FFF34D" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            <circle cx={startX} cy={startY} r="5" fill="#16a34a" stroke="#333E48" strokeWidth="2" />
-            <circle cx={endX}   cy={endY}   r="5" fill="#dc2626" stroke="#333E48" strokeWidth="2" />
+            <defs>
+                <linearGradient id={`mapBg${seed}`} x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#2d3a4a" />
+                    <stop offset="100%" stopColor="#1a2535" />
+                </linearGradient>
+            </defs>
+            <rect width="200" height="120" fill={`url(#mapBg${seed})`} rx="4" />
+            {/* Subtle road lines */}
+            <line x1="0" y1="90" x2="200" y2="90" stroke="#3a4a5a" strokeWidth="1" />
+            <line x1="0" y1="60" x2="200" y2="60" stroke="#3a4a5a" strokeWidth="1" />
+            <line x1="60" y1="0" x2="60" y2="120" stroke="#3a4a5a" strokeWidth="1" />
+            <line x1="130" y1="0" x2="130" y2="120" stroke="#3a4a5a" strokeWidth="1" />
+            {/* Route glow */}
+            <path d={d} fill="none" stroke="#FFF34D" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.15" />
+            {/* Route line */}
+            <path d={d} fill="none" stroke="#FFF34D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx={startX} cy={startY} r="5" fill="#16a34a" stroke="#fff" strokeWidth="1.5" />
+            <circle cx={endX}   cy={endY}   r="5" fill="#dc2626" stroke="#fff" strokeWidth="1.5" />
         </svg>
     );
 }

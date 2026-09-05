@@ -1,7 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { parseLocalDT, toLocalInputDT } from '@/utils/date';
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+function Toast({ message, onHide }) {
+    useEffect(() => {
+        const t = setTimeout(onHide, 3000);
+        return () => clearTimeout(t);
+    }, []);
+    return (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-gray-900 text-white text-sm px-5 py-3 rounded-full shadow-lg pointer-events-none">
+            {message}
+        </div>
+    );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -460,10 +474,36 @@ function WeekView({ templates }) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Classes({ templates, specials }) {
-    const [showSpecial, setShowSpecial] = useState(false);
+    const [showSpecial, setShowSpecial]       = useState(false);
+    const [specialsFilter, setSpecialsFilter] = useState('upcoming');
+    const [localSpecials, setLocalSpecials]   = useState(specials);
+    const [editClass, setEditClass]           = useState(null);
+    const [toast, setToast]                   = useState(null);
+
+    useEffect(() => { setLocalSpecials(specials); }, [specials]);
+
+    const now = new Date();
+    const filteredSpecials = localSpecials.filter((c) => {
+        const t = parseLocalDT(c.start_time);
+        if (specialsFilter === 'upcoming') return t >= now;
+        if (specialsFilter === 'past')     return t < now;
+        return true;
+    });
+
+    function deleteSpecial(c) {
+        if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+        setLocalSpecials((prev) => prev.filter((s) => s.id !== c.id));
+        setToast('Class deleted.');
+        router.delete(route('admin.classes.destroy', c.id), {
+            onError: () => { setLocalSpecials(specials); setToast(null); },
+        });
+    }
 
     return (
         <AdminLayout title="Classes">
+            {toast && <Toast message={toast} onHide={() => setToast(null)} />}
+            {editClass && <EditModal gymClass={editClass} onClose={() => setEditClass(null)} />}
+
             {/* Weekly schedule (templates) */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
                 <div className="px-4 py-3 border-b border-gray-100">
@@ -478,13 +518,31 @@ export default function Classes({ templates, specials }) {
             {/* Special one-off classes */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div>
-                        <span className="text-sm font-semibold text-gray-900">Special Classes</span>
-                        <span className="text-xs text-gray-400 ml-2">One-off sessions not in the weekly schedule</span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div>
+                            <span className="text-sm font-semibold text-gray-900">Special Classes</span>
+                            <span className="text-xs text-gray-400 ml-2">One-off sessions not in the weekly schedule</span>
+                        </div>
+                        <div className="flex gap-1">
+                            {[['upcoming', 'Upcoming'], ['past', 'Past'], ['all', 'All']].map(([val, label]) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setSpecialsFilter(val)}
+                                    className={[
+                                        'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                                        specialsFilter === val
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+                                    ].join(' ')}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <button
                         onClick={() => setShowSpecial(!showSpecial)}
-                        className="text-sm text-orange-500 hover:text-orange-700 font-medium"
+                        className="text-sm text-orange-500 hover:text-orange-700 font-medium shrink-0"
                     >
                         {showSpecial ? 'Hide' : '+ Add Special Class'}
                     </button>
@@ -494,9 +552,11 @@ export default function Classes({ templates, specials }) {
                         <AddClassForm onSuccess={() => setShowSpecial(false)} />
                     </div>
                 )}
-                {specials.length === 0 ? (
+                {filteredSpecials.length === 0 ? (
                     <div className="text-center py-10 text-gray-400">
-                        <p className="text-sm">No special classes added</p>
+                        <p className="text-sm">
+                            {localSpecials.length === 0 ? 'No special classes added' : `No ${specialsFilter} special classes`}
+                        </p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -509,7 +569,7 @@ export default function Classes({ templates, specials }) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {specials.map((c) => {
+                                {filteredSpecials.map((c) => {
                                     const full = c.bookings_count >= c.capacity;
                                     return (
                                         <tr key={c.id} className="hover:bg-gray-50 transition-colors">
@@ -523,13 +583,16 @@ export default function Classes({ templates, specials }) {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <button
-                                                    onClick={() => {
-                                                        if (!confirm(`Delete "${c.name}"?`)) return;
-                                                        router.delete(route('admin.classes.destroy', c.id));
-                                                    }}
-                                                    className="text-xs text-red-400 hover:text-red-600 font-medium"
-                                                >Delete</button>
+                                                <div className="flex items-center gap-3">
+                                                    <button
+                                                        onClick={() => setEditClass(c)}
+                                                        className="text-xs text-orange-500 hover:text-orange-700 font-medium"
+                                                    >Edit</button>
+                                                    <button
+                                                        onClick={() => deleteSpecial(c)}
+                                                        className="text-xs text-gray-400 hover:text-red-500 font-medium"
+                                                    >Delete</button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

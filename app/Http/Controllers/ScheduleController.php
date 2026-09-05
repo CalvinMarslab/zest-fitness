@@ -23,9 +23,8 @@ class ScheduleController extends Controller
             'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
         ])
             ->where('is_cancelled', false)
-            ->where('start_time', '>', now())
+            ->whereDate('start_time', today())
             ->orderBy('start_time')
-            ->limit(100)
             ->get()
             ->map(function (GymClass $class) use ($userBookings) {
                 $booking = $userBookings->get($class->id);

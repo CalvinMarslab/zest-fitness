@@ -33,12 +33,16 @@ function FilterBar({ filters }) {
                 onChange={(e) => form.setData('search', e.target.value)}
                 className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 w-64"
             />
-            <input
-                type="date"
-                value={form.data.date}
-                onChange={(e) => form.setData('date', e.target.value)}
-                className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-            />
+            <label className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-gray-500 whitespace-nowrap">Class date</span>
+                <input
+                    type="date"
+                    aria-label="Class date"
+                    value={form.data.date}
+                    onChange={(e) => form.setData('date', e.target.value)}
+                    className="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                />
+            </label>
             <button type="submit"
                 className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600">
                 Filter
