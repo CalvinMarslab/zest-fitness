@@ -23,7 +23,7 @@ class ScheduleController extends Controller
             'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
         ])
             ->where('is_cancelled', false)
-            ->whereDate('start_time', today())
+            ->whereBetween('start_time', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
             ->orderBy('start_time')
             ->get()
             ->map(function (GymClass $class) use ($userBookings) {
@@ -44,6 +44,7 @@ class ScheduleController extends Controller
                     'booking_status' => $booking?->status,
                     'status' => $class->status ?? 'scheduled',
                     'location' => $class->location,
+                    'date_label' => $class->start_time->format('Y-m-d'),
                 ];
             });
 

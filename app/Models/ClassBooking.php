@@ -12,6 +12,7 @@ class ClassBooking extends Model
     protected $fillable = [
         'user_id', 'gym_class_id', 'status',
         'queue_position', 'cancelled_at', 'checked_in_at',
+        'user_subscription_id', 'credit_charged', 'credit_refunded_at', 'booked_at',
     ];
 
     protected function casts(): array
@@ -19,6 +20,9 @@ class ClassBooking extends Model
         return [
             'cancelled_at' => 'datetime',
             'checked_in_at' => 'datetime',
+            'credit_charged' => 'boolean',
+            'credit_refunded_at' => 'datetime',
+            'booked_at' => 'datetime',
         ];
     }
 
@@ -35,6 +39,23 @@ class ClassBooking extends Model
     public function activity(): HasOne
     {
         return $this->hasOne(Activity::class);
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(UserSubscription::class, 'user_subscription_id');
+    }
+
+    public function isCancelled(): bool
+    {
+        return in_array($this->status, ['cancelled', 'late_cancel']);
+    }
+
+    public function isRefundable(): bool
+    {
+        return in_array($this->status, ['booked', 'checked_in'])
+            && $this->credit_charged
+            && ! $this->credit_refunded_at;
     }
 
     // ── Scopes ────────────────────────────────────────────────────────────────

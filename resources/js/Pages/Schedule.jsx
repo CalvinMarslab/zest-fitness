@@ -242,6 +242,22 @@ function ClassCard({ gymClass, onSelect }) {
     );
 }
 
+// ─── Date Label Helper ────────────────────────────────────────────────────────
+
+function getDateLabel(dateStr) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const date = new Date(dateStr + 'T00:00:00');
+    const todayStr  = today.toISOString().slice(0, 10);
+    const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+
+    if (dateStr === todayStr)     return 'Today';
+    if (dateStr === tomorrowStr)  return 'Tomorrow';
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Schedule({ classes }) {
@@ -252,6 +268,15 @@ export default function Schedule({ classes }) {
         weekday: 'long', month: 'long', day: 'numeric',
     });
 
+    // Group classes by date_label
+    const grouped = classes.reduce((acc, cls) => {
+        const key = cls.date_label;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(cls);
+        return acc;
+    }, {});
+    const groupedDates = Object.keys(grouped).sort();
+
     return (
         <AppLayout active="Schedule">
             {detailClass && (
@@ -260,7 +285,7 @@ export default function Schedule({ classes }) {
 
             {/* Header */}
             <div className="mb-5">
-                <h1 className="text-2xl font-black text-[#333E48]">Today's Classes</h1>
+                <h1 className="text-2xl font-black text-[#333E48]">Schedule</h1>
                 <p className="text-sm text-[#666] mt-0.5">{todayLabel}</p>
             </div>
 
@@ -270,13 +295,22 @@ export default function Schedule({ classes }) {
             {classes.length === 0 ? (
                 <div className="text-center py-20">
                     <p className="text-5xl mb-4">🗓️</p>
-                    <p className="font-bold text-[#333E48]">No classes today</p>
-                    <p className="text-sm mt-1 text-[#666]">Check back tomorrow</p>
+                    <p className="font-bold text-[#333E48]">No upcoming classes</p>
+                    <p className="text-sm mt-1 text-[#666]">Check back soon</p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
-                    {classes.map(cls => (
-                        <ClassCard key={cls.id} gymClass={cls} onSelect={setDetailClass} />
+                <div className="flex flex-col gap-6">
+                    {groupedDates.map(dateKey => (
+                        <div key={dateKey}>
+                            <h2 className="text-sm font-bold text-[#888] uppercase tracking-wider mb-3">
+                                {getDateLabel(dateKey)}
+                            </h2>
+                            <div className="flex flex-col gap-4">
+                                {grouped[dateKey].map(cls => (
+                                    <ClassCard key={cls.id} gymClass={cls} onSelect={setDetailClass} />
+                                ))}
+                            </div>
+                        </div>
                     ))}
                 </div>
             )}

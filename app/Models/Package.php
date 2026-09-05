@@ -9,7 +9,7 @@ class Package extends Model
 {
     protected $fillable = [
         'name', 'description', 'credits', 'period_days',
-        'price', 'badge', 'is_active', 'is_trial', 'sort_order',
+        'price', 'badge', 'is_active', 'is_trial', 'is_unlimited', 'sort_order',
     ];
 
     protected function casts(): array
@@ -20,6 +20,7 @@ class Package extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
             'is_trial' => 'boolean',
+            'is_unlimited' => 'boolean',
             'sort_order' => 'integer',
         ];
     }

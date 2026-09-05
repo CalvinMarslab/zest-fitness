@@ -30,6 +30,7 @@ class AdminPackageController extends Controller
             'price' => 'required|numeric|min:0',
             'badge' => 'nullable|string|max:50',
             'is_active' => 'boolean',
+            'is_unlimited' => 'boolean',
             'sort_order' => 'integer|min:0',
         ]);
 
@@ -48,6 +49,7 @@ class AdminPackageController extends Controller
             'price' => 'sometimes|numeric|min:0',
             'badge' => 'nullable|string|max:50',
             'is_active' => 'boolean',
+            'is_unlimited' => 'boolean',
             'sort_order' => 'integer|min:0',
         ]);
 

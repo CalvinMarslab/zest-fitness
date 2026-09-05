@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ClassBooking;
 use App\Models\ClassTemplate;
 use App\Models\GymClass;
+use App\Services\BookingService;
 use App\Services\ClaudeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -15,6 +17,8 @@ use Inertia\Response;
 
 class AdminClassController extends Controller
 {
+    public function __construct(private readonly BookingService $bookingService) {}
+
     public function index(): Response
     {
         \Artisan::call('classes:generate', ['--weeks' => 8]);
@@ -113,7 +117,6 @@ class AdminClassController extends Controller
             for ($d = $today->copy(); $d->lt($endDate); $d->addDay()) {
                 if (in_array($d->dayOfWeek, $data['days'])) {
                     $startTime = $d->copy()->setTime((int) $sh, (int) $sm);
-                    $label = sprintf('%s–%s', $data['start_hour'], $data['end_hour']);
                     $classes[] = [
                         'name' => $base['name'],
                         'coach' => $base['coach'],
@@ -212,17 +215,35 @@ class AdminClassController extends Controller
 
     public function destroy(GymClass $gymClass): RedirectResponse
     {
-        $gymClass->delete();
+        $hasBookings = $gymClass->bookings()->exists();
 
-        return back();
+        if ($hasBookings) {
+            $this->bookingService->cancelClass($gymClass);
+        } else {
+            $gymClass->delete();
+        }
+
+        return back()->with('success', $hasBookings
+            ? 'Class cancelled and all bookings refunded.'
+            : 'Class deleted.');
     }
 
     public function bulkDestroy(Request $request): RedirectResponse
     {
         $data = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
-        GymClass::whereIn('id', $data['ids'])->delete();
 
-        return back();
+        $classes = GymClass::whereIn('id', $data['ids'])->get();
+
+        foreach ($classes as $gymClass) {
+            $hasBookings = $gymClass->bookings()->exists();
+            if ($hasBookings) {
+                $this->bookingService->cancelClass($gymClass);
+            } else {
+                $gymClass->delete();
+            }
+        }
+
+        return back()->with('success', 'Classes processed successfully.');
     }
 
     public function generateWod(Request $request): JsonResponse
