@@ -62,7 +62,7 @@ class AdminPackageTest extends TestCase
         $member = User::factory()->create(['credits' => 0]);
 
         $response = $this->actingAs($this->admin)
-            ->post(route('admin.users.assign-subscription', $member), [
+            ->post(route('admin.users.subscriptions.store', $member), [
                 'package_id' => $package->id,
             ]);
 

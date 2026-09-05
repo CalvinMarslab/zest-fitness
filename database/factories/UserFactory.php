@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Package;
 use App\Models\User;
 use App\Models\UserSubscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -51,8 +52,14 @@ class UserFactory extends Factory
     public function withSubscription(int $credits = 5, bool $unlimited = false): static
     {
         return $this->afterCreating(function (User $user) use ($credits, $unlimited) {
+            $package = Package::factory()->create([
+                'credits' => $unlimited ? 0 : $credits,
+                'is_unlimited' => $unlimited,
+            ]);
+
             UserSubscription::create([
                 'user_id' => $user->id,
+                'package_id' => $package->id,
                 'credits_granted' => $credits,
                 'credits_remaining' => $credits,
                 'started_at' => now()->subDay(),

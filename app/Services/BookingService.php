@@ -187,7 +187,7 @@ class BookingService
             $booking->update(['status' => $newStatus, 'cancelled_at' => now()]);
 
             if ($shouldRefund) {
-                $this->refundCredit($booking);
+                $this->refundCredit($booking, $forceRefund === true);
             }
 
             // Promote waitlist if a confirmed spot opened (check original status before the update)
@@ -323,15 +323,15 @@ class BookingService
     /**
      * Refund a credit back to the subscription. Idempotent.
      */
-    private function refundCredit(ClassBooking $booking): void
+    private function refundCredit(ClassBooking $booking, bool $force = false): void
     {
         // Idempotent guard
         if ($booking->credit_refunded_at !== null) {
             return;
         }
 
-        // No credit was charged (waitlist or unlimited)
-        if (! $booking->credit_charged) {
+        // No credit was charged (waitlist or unlimited) — skip unless admin forces
+        if (! $booking->credit_charged && ! $force) {
             return;
         }
 
