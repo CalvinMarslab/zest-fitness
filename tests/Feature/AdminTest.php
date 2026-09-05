@@ -6,6 +6,7 @@ use App\Models\ClassBooking;
 use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
+use App\Models\UserSubscription;
 use App\Models\WorkoutResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -221,6 +222,19 @@ class AdminTest extends TestCase
     public function test_admin_can_cancel_booking_with_refund(): void
     {
         $gymClass = GymClass::factory()->create();
+
+        // Give the user an active subscription with 4 credits remaining (1 already used)
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
+        $sub = UserSubscription::create([
+            'user_id' => $this->regularUser->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 4,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
         $this->regularUser->update(['credits' => 4]);
 
         $booking = ClassBooking::create([
@@ -228,16 +242,18 @@ class AdminTest extends TestCase
             'gym_class_id' => $gymClass->id,
             'status' => 'booked',
             'credit_charged' => true,
+            'user_subscription_id' => $sub->id,
+            'booked_at' => now(),
         ]);
 
         $response = $this->actingAs($this->admin)
             ->delete(route('admin.bookings.destroy', $booking));
 
         $response->assertRedirect();
-        // Admin cancel now uses status-based cancellation (Phase 1A) instead of deletion
+        // Admin cancel uses status-based cancellation (no hard delete)
         $this->assertDatabaseHas('class_bookings', ['id' => $booking->id, 'status' => 'cancelled']);
 
-        // Credit should be refunded
+        // Credit should be refunded — subscription goes from 4 → 5, display synced
         $this->assertEquals(5, $this->regularUser->fresh()->credits);
     }
 
@@ -301,5 +317,162 @@ class AdminTest extends TestCase
             ->post(route('admin.packages.store'), []);
 
         $response->assertSessionHasErrors(['name', 'credits', 'period_days', 'price']);
+    }
+
+    // ── P0-2: Class cancellation via update triggers booking lifecycle ─────────
+
+    public function test_cancelling_class_via_update_triggers_booking_lifecycle(): void
+    {
+        $gymClass = GymClass::factory()->create([
+            'start_time' => now()->addDay(),
+            'status' => 'scheduled',
+            'is_cancelled' => false,
+        ]);
+
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
+
+        $user1 = User::factory()->create(['credits' => 4]);
+        $sub1 = UserSubscription::create([
+            'user_id' => $user1->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 4,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+
+        $user2 = User::factory()->create(['credits' => 4]);
+        $sub2 = UserSubscription::create([
+            'user_id' => $user2->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 4,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+
+        $booking1 = ClassBooking::create([
+            'user_id' => $user1->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+            'credit_charged' => true,
+            'user_subscription_id' => $sub1->id,
+            'booked_at' => now(),
+        ]);
+
+        $booking2 = ClassBooking::create([
+            'user_id' => $user2->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+            'credit_charged' => true,
+            'user_subscription_id' => $sub2->id,
+            'booked_at' => now(),
+        ]);
+
+        $waitlistUser = User::factory()->create(['credits' => 5]);
+        $booking3 = ClassBooking::create([
+            'user_id' => $waitlistUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'waitlisted',
+            'credit_charged' => false,
+            'queue_position' => 1,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.classes.update', $gymClass), ['status' => 'cancelled']);
+
+        $response->assertRedirect();
+
+        // All bookings cancelled
+        $this->assertDatabaseHas('class_bookings', ['id' => $booking1->id, 'status' => 'cancelled']);
+        $this->assertDatabaseHas('class_bookings', ['id' => $booking2->id, 'status' => 'cancelled']);
+        $this->assertDatabaseHas('class_bookings', ['id' => $booking3->id, 'status' => 'cancelled']);
+
+        // Confirmed bookings have credit_refunded_at set
+        $this->assertNotNull(ClassBooking::find($booking1->id)->credit_refunded_at);
+        $this->assertNotNull(ClassBooking::find($booking2->id)->credit_refunded_at);
+
+        // Waitlisted booking does NOT have credit_refunded_at set
+        $this->assertNull(ClassBooking::find($booking3->id)->credit_refunded_at);
+
+        // Class is marked cancelled
+        $this->assertTrue((bool) $gymClass->fresh()->is_cancelled);
+    }
+
+    // ── P1-2: Coach ID — class with coach_id is visible to that coach ─────────
+
+    public function test_class_created_with_coach_id_is_visible_to_coach(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $assignedClass = GymClass::factory()->create([
+            'coach_id' => $coach->id,
+            'start_time' => now()->addDay(),
+        ]);
+        $otherClass = GymClass::factory()->create([
+            'start_time' => now()->addDay(),
+        ]);
+
+        $response = $this->actingAs($coach)->get(route('coach.classes.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Coach/Classes')
+            ->has('classes', 1) // only the assigned class
+        );
+    }
+
+    // ── P1-3: Attendance state transitions ────────────────────────────────────
+
+    public function test_attendance_valid_transition_allowed(): void
+    {
+        $gymClass = GymClass::factory()->create();
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'checked_in']);
+
+        $response->assertRedirect();
+        $this->assertEquals('checked_in', $booking->fresh()->status);
+    }
+
+    public function test_attendance_invalid_transition_is_rejected(): void
+    {
+        $gymClass = GymClass::factory()->create();
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        // 'booked' → 'booked' is not a valid transition
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'booked']);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('booked', $booking->fresh()->status);
+    }
+
+    public function test_attendance_update_rejected_on_cancelled_booking(): void
+    {
+        $gymClass = GymClass::factory()->create();
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'cancelled',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'checked_in']);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('cancelled', $booking->fresh()->status);
     }
 }

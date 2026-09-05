@@ -646,6 +646,114 @@ class BookingServiceTest extends TestCase
         $this->assertEquals(1, $confirmedCount);
     }
 
+    // ── Test P0-1a: admin force cancel on unlimited booking creates no credits ───
+
+    public function test_admin_force_cancel_unlimited_booking_creates_no_credits(): void
+    {
+        $user = $this->makeUnlimitedUser();
+        $class = $this->makeClass();
+        $sub = UserSubscription::where('user_id', $user->id)->first();
+
+        $result = $this->service->book($user, $class);
+        $this->assertEquals('booked', $result['status']);
+
+        $booking = ClassBooking::where('user_id', $user->id)->where('gym_class_id', $class->id)->first();
+        $this->assertEquals(false, (bool) $booking->credit_charged);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->service->cancel($booking, $admin, forceRefund: true);
+
+        // Unlimited sub credits_remaining stays at 0
+        $this->assertEquals(0, $sub->fresh()->credits_remaining);
+        // User display credits stay at 0
+        $this->assertEquals(0, $user->fresh()->credits);
+    }
+
+    // ── Test P0-1b: admin force cancel on uncharged booking creates no credits ─
+
+    public function test_admin_force_cancel_uncharged_booking_creates_no_credits(): void
+    {
+        $user = $this->makeUser(5);
+        $class = $this->makeClass();
+        $sub = UserSubscription::where('user_id', $user->id)->first();
+
+        // Create a booking directly with credit_charged=false (e.g. legacy or waitlist-promoted without charge)
+        $booking = ClassBooking::create([
+            'user_id' => $user->id,
+            'gym_class_id' => $class->id,
+            'status' => 'booked',
+            'credit_charged' => false,
+            'user_subscription_id' => $sub->id,
+            'booked_at' => now(),
+        ]);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $result = $this->service->cancel($booking, $admin, forceRefund: true);
+
+        $this->assertEquals('cancelled', $result['status']);
+        // Credits must not change
+        $this->assertEquals(5, $user->fresh()->credits);
+        $this->assertEquals(5, $sub->fresh()->credits_remaining);
+        // No refund timestamp must be set
+        $this->assertNull(ClassBooking::find($booking->id)->credit_refunded_at);
+    }
+
+    // ── Test P0-1c: admin force cancel on charged booking refunds exactly once ─
+
+    public function test_admin_force_cancel_charged_booking_refunds_exactly_once(): void
+    {
+        $user = $this->makeUser(5);
+        $class = $this->makeClass(['start_time' => now()->addHour()]); // within late-cancel window
+        $sub = UserSubscription::where('user_id', $user->id)->first();
+
+        // Book normally — credit_charged=true, credits go to 4
+        $result = $this->service->book($user, $class);
+        $this->assertEquals('booked', $result['status']);
+        $this->assertEquals(4, $user->fresh()->credits);
+
+        $booking = ClassBooking::where('user_id', $user->id)->where('gym_class_id', $class->id)->first();
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $cancelResult = $this->service->cancel($booking, $admin, forceRefund: true);
+
+        // Credit refunded despite being within late-cancel window
+        $this->assertEquals('cancelled', $cancelResult['status']);
+        $this->assertTrue($cancelResult['refunded']);
+        $this->assertEquals(5, $user->fresh()->credits);
+        $this->assertEquals(5, $sub->fresh()->credits_remaining);
+        $this->assertNotNull(ClassBooking::find($booking->id)->credit_refunded_at);
+    }
+
+    // ── Test P0-1d: admin force cancel repeated does not double-refund ─────────
+
+    public function test_admin_force_cancel_repeated_does_not_double_refund(): void
+    {
+        $user = $this->makeUser(5);
+        $class = $this->makeClass(['start_time' => now()->addDays(2)]);
+        $sub = UserSubscription::where('user_id', $user->id)->first();
+
+        $result = $this->service->book($user, $class);
+        $this->assertEquals('booked', $result['status']);
+
+        $booking = ClassBooking::where('user_id', $user->id)->where('gym_class_id', $class->id)->first();
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // First admin cancel
+        $this->service->cancel($booking, $admin, forceRefund: true);
+        $creditsAfterFirst = $sub->fresh()->credits_remaining;
+
+        // Second admin cancel (booking is now cancelled — idempotent)
+        $booking->refresh();
+        $secondResult = $this->service->cancel($booking, $admin, forceRefund: true);
+
+        $this->assertEquals('already_cancelled', $secondResult['status']);
+        $this->assertFalse($secondResult['refunded']);
+
+        // Credits must not have changed from after the first cancel
+        $this->assertEquals($creditsAfterFirst, $sub->fresh()->credits_remaining);
+        $this->assertEquals($creditsAfterFirst, $user->fresh()->credits);
+    }
+
     // ── Test 20: repeated cancellation request is idempotent ─────────────────
 
     public function test_repeated_cancellation_request_is_idempotent(): void

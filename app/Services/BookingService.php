@@ -132,6 +132,10 @@ class BookingService
     /**
      * Cancel a booking.
      *
+     * $forceRefund = true  → ignore late-cancellation cutoff; refund if and only if credit_charged=true
+     * $forceRefund = false → no refund regardless
+     * $forceRefund = null  → apply normal cancellation rules
+     *
      * @return array{status: string, refunded: bool}
      */
     public function cancel(ClassBooking $booking, ?User $actor = null, ?bool $forceRefund = null): array
@@ -160,6 +164,7 @@ class BookingService
             $newStatus = 'cancelled';
 
             if ($forceRefund === true) {
+                // Ignore late-cancellation cutoff; refundCredit() guards credit_charged internally
                 $shouldRefund = true;
             } elseif ($forceRefund === false) {
                 $shouldRefund = false;
@@ -187,7 +192,7 @@ class BookingService
             $booking->update(['status' => $newStatus, 'cancelled_at' => now()]);
 
             if ($shouldRefund) {
-                $this->refundCredit($booking, $forceRefund === true);
+                $this->refundCredit($booking);
             }
 
             // Promote waitlist if a confirmed spot opened (check original status before the update)
@@ -201,7 +206,7 @@ class BookingService
 
     /**
      * Cancel all bookings for a class (e.g. when class is cancelled).
-     * Confirmed bookings get refunded; waitlisted do not.
+     * Confirmed bookings get refunded if credit_charged=true; waitlisted do not.
      */
     public function cancelClass(GymClass $class): void
     {
@@ -211,7 +216,7 @@ class BookingService
             // Mark class as cancelled
             $class->update(['is_cancelled' => true, 'status' => 'cancelled']);
 
-            // Cancel confirmed bookings with refund (force refund)
+            // Cancel confirmed bookings with refund (only if credit was actually charged)
             $confirmed = ClassBooking::where('gym_class_id', $class->id)
                 ->whereIn('status', ['booked', 'checked_in'])
                 ->lockForUpdate()
@@ -232,64 +237,78 @@ class BookingService
     /**
      * Promote the next eligible waitlisted member when a spot opens up.
      * Skips ineligible users (suspended, no credits, no subscription).
+     * Wrapped in its own transaction so standalone calls are also atomic.
+     *
+     * @return array{status: 'promoted'|'full'|'no_eligible_waitlist'}
      */
-    public function promoteWaitlist(GymClass $class): void
+    public function promoteWaitlist(GymClass $class): array
     {
-        // Count current confirmed bookings
-        $confirmedCount = ClassBooking::where('gym_class_id', $class->id)
-            ->whereIn('status', ['booked', 'checked_in'])
-            ->count();
+        return DB::transaction(function () use ($class) {
+            $class = GymClass::where('id', $class->id)->lockForUpdate()->firstOrFail();
 
-        while ($confirmedCount < $class->capacity) {
-            $next = ClassBooking::where('gym_class_id', $class->id)
-                ->where('status', 'waitlisted')
-                ->orderBy('queue_position')
+            $confirmedCount = ClassBooking::where('gym_class_id', $class->id)
+                ->whereIn('status', ['booked', 'checked_in'])
                 ->lockForUpdate()
-                ->first();
+                ->count();
 
-            if (! $next) {
-                break;
+            if ($confirmedCount >= $class->capacity) {
+                return ['status' => 'full'];
             }
 
-            $waitlistUser = User::where('id', $next->user_id)->lockForUpdate()->first();
+            while ($confirmedCount < $class->capacity) {
+                $next = ClassBooking::where('gym_class_id', $class->id)
+                    ->where('status', 'waitlisted')
+                    ->orderBy('queue_position')
+                    ->lockForUpdate()
+                    ->first();
 
-            if (! $waitlistUser || $waitlistUser->isSuspended()) {
-                // Skip ineligible user
-                $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+                if (! $next) {
+                    return ['status' => 'no_eligible_waitlist'];
+                }
 
-                continue;
+                $waitlistUser = User::where('id', $next->user_id)->lockForUpdate()->first();
+
+                if (! $waitlistUser || $waitlistUser->isSuspended()) {
+                    // Skip ineligible user
+                    $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+
+                    continue;
+                }
+
+                $sub = $this->findEligibleSubscription($waitlistUser, $class);
+                if (! $sub || ! $sub->hasCredits()) {
+                    // Skip ineligible user
+                    $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+
+                    continue;
+                }
+
+                $isUnlimited = $sub->isUnlimited();
+
+                $next->update([
+                    'status' => 'booked',
+                    'queue_position' => null,
+                    'booked_at' => now(),
+                    'credit_charged' => ! $isUnlimited,
+                    'user_subscription_id' => $sub->id,
+                ]);
+
+                if (! $isUnlimited) {
+                    $this->deductCredit($waitlistUser, $sub);
+                }
+
+                return ['status' => 'promoted'];
             }
 
-            $sub = $this->findEligibleSubscription($waitlistUser, $class);
-            if (! $sub || ! $sub->hasCredits()) {
-                // Skip ineligible user
-                $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-
-                continue;
-            }
-
-            $isUnlimited = $sub->isUnlimited();
-
-            $next->update([
-                'status' => 'booked',
-                'queue_position' => null,
-                'booked_at' => now(),
-                'credit_charged' => ! $isUnlimited,
-                'user_subscription_id' => $sub->id,
-            ]);
-
-            if (! $isUnlimited) {
-                $this->deductCredit($waitlistUser, $sub);
-            }
-
-            $confirmedCount++;
-            // Promote only one per cancellation in normal flow
-            break;
-        }
+            return ['status' => 'full'];
+        });
     }
 
     /**
      * Find the earliest-expiring active subscription with available credits.
+     *
+     * Phase 1A: all active non-expired packages are eligible for all classes.
+     * Per-package class/category eligibility rules are reserved for Phase 1B.
      */
     private function findEligibleSubscription(User $user, GymClass $class): ?UserSubscription
     {
@@ -310,7 +329,7 @@ class BookingService
     }
 
     /**
-     * Deduct a credit from the subscription and sync user display credits.
+     * Deduct a credit from the subscription and sync the user display credits.
      */
     private function deductCredit(User $user, UserSubscription $sub): void
     {
@@ -319,21 +338,26 @@ class BookingService
         }
 
         $sub->decrement('credits_remaining');
-        $user->decrement('credits');
+        $user->syncCreditSummary();
     }
 
     /**
      * Refund a credit back to the subscription. Idempotent.
+     *
+     * Semantics:
+     * - credit_charged = false → never refund, regardless of any force flag
+     * - credit_charged = true  → refund to the original subscription exactly once
+     * - credit_refunded_at is the idempotency guard
      */
-    private function refundCredit(ClassBooking $booking, bool $force = false): void
+    private function refundCredit(ClassBooking $booking): void
     {
         // Idempotent guard
         if ($booking->credit_refunded_at !== null) {
             return;
         }
 
-        // No credit was charged (waitlist or unlimited) — skip unless admin forces
-        if (! $booking->credit_charged && ! $force) {
+        // Never create credits that were not consumed (unlimited or waitlisted bookings)
+        if (! $booking->credit_charged) {
             return;
         }
 
@@ -347,7 +371,7 @@ class BookingService
         }
 
         if ($user) {
-            $user->increment('credits');
+            $user->syncCreditSummary();
         }
 
         $booking->update(['credit_refunded_at' => now()]);

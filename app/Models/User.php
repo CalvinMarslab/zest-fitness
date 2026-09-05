@@ -80,6 +80,20 @@ class User extends Authenticatable
         return $this->status === 'suspended';
     }
 
+    /**
+     * Rebuild the user's display credit count from active subscription totals.
+     * Call this after any credit deduction or refund so the two sources stay in sync.
+     */
+    public function syncCreditSummary(): void
+    {
+        $total = $this->subscriptions()
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->where('is_unlimited', false)
+            ->sum('credits_remaining');
+        $this->update(['credits' => $total]);
+    }
+
     public function deductCredit(): bool
     {
         if ($this->credits <= 0) {

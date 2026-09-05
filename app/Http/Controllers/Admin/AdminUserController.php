@@ -128,14 +128,22 @@ class AdminUserController extends Controller
     public function adjustCredits(Request $request, User $user): RedirectResponse
     {
         $data = $request->validate([
-            'adjustment' => 'required|integer',
-            'notes' => 'sometimes|nullable|string|max:500',
+            'subscription_id' => 'required|exists:user_subscriptions,id',
+            'adjustment' => 'required|integer|not_in:0',
+            'notes' => 'nullable|string|max:500',
         ]);
 
-        $newCredits = max(0, $user->credits + $data['adjustment']);
-        $user->update(['credits' => $newCredits]);
+        $sub = UserSubscription::where('id', $data['subscription_id'])
+            ->where('user_id', $user->id)
+            ->where('is_unlimited', false)
+            ->firstOrFail();
 
-        return back()->with('success', "Credits adjusted. New balance: {$newCredits}.");
+        $newCredits = max(0, $sub->credits_remaining + $data['adjustment']);
+        $sub->update(['credits_remaining' => $newCredits]);
+
+        $user->syncCreditSummary();
+
+        return back()->with('success', 'Credits adjusted.');
     }
 
     public function bookForMember(Request $request, User $user): RedirectResponse

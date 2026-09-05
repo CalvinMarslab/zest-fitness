@@ -42,6 +42,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'coach' => 'required|string|max:255',
+            'coach_id' => 'nullable|exists:users,id',
             'day_of_week' => 'required|integer|between:0,6',
             'start_time' => 'required|string',
             'capacity' => 'required|integer|min:1|max:200',
@@ -57,6 +58,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'coach' => 'sometimes|string|max:255',
+            'coach_id' => 'sometimes|nullable|exists:users,id',
             'day_of_week' => 'sometimes|integer|between:0,6',
             'start_time' => 'sometimes|string',
             'capacity' => 'sometimes|integer|min:1|max:200',
@@ -206,6 +208,17 @@ class AdminClassController extends Controller
             'is_cancelled' => 'sometimes|boolean',
             'status' => 'sometimes|string|in:scheduled,cancelled,completed',
         ]);
+
+        $becomingCancelled = (isset($data['status']) && $data['status'] === 'cancelled')
+            || (isset($data['is_cancelled']) && $data['is_cancelled']);
+
+        $wasAlreadyCancelled = $gymClass->is_cancelled || $gymClass->status === 'cancelled';
+
+        if ($becomingCancelled && ! $wasAlreadyCancelled) {
+            $this->bookingService->cancelClass($gymClass);
+
+            return back()->with('success', 'Class cancelled. All bookings have been processed.');
+        }
 
         $gymClass->update($data);
 
