@@ -72,7 +72,6 @@ class AdminUserController extends Controller
     {
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'credits' => 'sometimes|integer|min:0',
             'is_admin' => 'sometimes|boolean',
             'role' => 'sometimes|string|in:admin,coach,member',
             'phone' => 'sometimes|nullable|string|max:30',
@@ -116,10 +115,7 @@ class AdminUserController extends Controller
                 'is_unlimited' => $package->is_unlimited,
             ]);
 
-            // Sync user display credits
-            if (! $package->is_unlimited) {
-                $user->increment('credits', $package->credits);
-            }
+            $user->syncCreditSummary();
         });
 
         return back()->with('success', "Assigned {$package->name} to {$user->name}.");
@@ -138,7 +134,10 @@ class AdminUserController extends Controller
             ->where('is_unlimited', false)
             ->firstOrFail();
 
-        $newCredits = max(0, $sub->credits_remaining + $data['adjustment']);
+        $newCredits = $sub->credits_remaining + $data['adjustment'];
+        if ($newCredits < 0) {
+            return back()->withErrors(['adjustment' => "Cannot reduce below zero. Current balance: {$sub->credits_remaining}."]);
+        }
         $sub->update(['credits_remaining' => $newCredits]);
 
         $user->syncCreditSummary();

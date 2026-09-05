@@ -107,10 +107,9 @@ class PackageTest extends TestCase
         ]);
     }
 
-    public function test_subscribing_adds_credits_to_existing_balance(): void
+    public function test_subscribing_syncs_credits_from_subscription_total(): void
     {
-        $this->user->update(['credits' => 3]);
-
+        // credits is display-only; syncCreditSummary() rebuilds from subscription sum
         $pkg = Package::create([
             'name' => 'Monthly', 'credits' => 10, 'period_days' => 30,
             'price' => 29.99, 'is_active' => true, 'sort_order' => 1,
@@ -119,7 +118,7 @@ class PackageTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('packages.subscribe', $pkg));
 
-        $this->assertEquals(13, $this->user->fresh()->credits);
+        $this->assertEquals(10, $this->user->fresh()->credits);
     }
 
     public function test_cannot_subscribe_to_inactive_package(): void

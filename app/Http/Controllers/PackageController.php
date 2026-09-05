@@ -77,10 +77,7 @@ class PackageController extends Controller
             'is_unlimited' => $package->is_unlimited,
         ]);
 
-        // Top up user credits (display only; not needed for unlimited)
-        if (! $package->is_unlimited) {
-            $user->increment('credits', $package->credits);
-        }
+        $user->syncCreditSummary();
 
         return redirect()->route('packages')
             ->with('success', "✅ {$package->name} activated! {$package->credits} credits added.");

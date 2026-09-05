@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\ClassTemplate;
 use App\Models\GymClass;
+use App\Models\User;
 use App\Services\BookingService;
 use App\Services\ClaudeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -90,9 +92,15 @@ class AdminClassController extends Controller
         $base = $request->validate([
             'name' => 'required|string|max:255',
             'coach' => 'required|string|max:255',
+            'coach_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->whereIn('role', ['coach', 'admin']))],
             'capacity' => 'required|integer|min:1|max:100',
             'recurring' => 'required|boolean',
         ]);
+
+        if (! empty($base['coach_id'])) {
+            $coachUser = User::find($base['coach_id']);
+            $base['coach'] = $coachUser?->name ?? $base['coach'];
+        }
 
         if (! $base['recurring']) {
             // ── Single class ─────────────────────────────────────────────────
@@ -114,6 +122,7 @@ class AdminClassController extends Controller
             $today = Carbon::today();
             $endDate = $today->copy()->addWeeks((int) $data['weeks']);
             $classes = [];
+            $coachId = $base['coach_id'] ?? null;
 
             for ($d = $today->copy(); $d->lt($endDate); $d->addDay()) {
                 if (in_array($d->dayOfWeek, $data['days'])) {
@@ -121,6 +130,7 @@ class AdminClassController extends Controller
                     $classes[] = [
                         'name' => $base['name'],
                         'coach' => $base['coach'],
+                        'coach_id' => $coachId,
                         'capacity' => $base['capacity'],
                         'start_time' => $startTime->toDateTimeString(),
                         'created_at' => now(),

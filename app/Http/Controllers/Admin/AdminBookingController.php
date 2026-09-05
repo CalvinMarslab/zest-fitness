@@ -15,8 +15,6 @@ class AdminBookingController extends Controller
 {
     private const VALID_TRANSITIONS = [
         'booked' => ['checked_in', 'no_show'],
-        'checked_in' => ['booked', 'no_show'],
-        'no_show' => ['booked', 'checked_in'],
     ];
 
     public function __construct(private readonly BookingService $bookingService) {}

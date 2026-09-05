@@ -88,11 +88,13 @@ class AdminTest extends TestCase
 
     public function test_admin_can_update_user_credits(): void
     {
+        // credits field is no longer accepted in the update endpoint; it is ignored
+        $originalCredits = $this->regularUser->credits;
         $response = $this->actingAs($this->admin)
             ->patch(route('admin.users.update', $this->regularUser), ['credits' => 50]);
 
         $response->assertRedirect();
-        $this->assertEquals(50, $this->regularUser->fresh()->credits);
+        $this->assertEquals($originalCredits, $this->regularUser->fresh()->credits);
     }
 
     public function test_admin_can_toggle_admin_flag(): void
@@ -474,5 +476,249 @@ class AdminTest extends TestCase
 
         $response->assertSessionHasErrors('status');
         $this->assertEquals('cancelled', $booking->fresh()->status);
+    }
+
+    // ── Credit bypass closure ─────────────────────────────────────────────────
+
+    public function test_assign_subscription_rebuilds_credits_from_authoritative_source(): void
+    {
+        // User has stale/incorrect display credits
+        $this->regularUser->update(['credits' => 99]);
+
+        $package = Package::factory()->create(['credits' => 10, 'is_unlimited' => false]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.subscriptions.store', $this->regularUser), [
+                'package_id' => $package->id,
+            ]);
+
+        $response->assertRedirect();
+
+        // credits should reflect the authoritative subscription sum (10), not the stale 99 + 10 = 109
+        $this->assertEquals(10, $this->regularUser->fresh()->credits);
+    }
+
+    public function test_credit_adjustment_below_zero_returns_error(): void
+    {
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
+        $sub = UserSubscription::create([
+            'user_id' => $this->regularUser->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 3,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+        $this->regularUser->update(['credits' => 3]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.users.credits.update', $this->regularUser), [
+                'subscription_id' => $sub->id,
+                'adjustment' => -5,
+            ]);
+
+        $response->assertSessionHasErrors('adjustment');
+        $this->assertEquals(3, $sub->fresh()->credits_remaining);
+    }
+
+    // ── coach_id for new classes ──────────────────────────────────────────────
+
+    public function test_create_one_off_class_with_coach_id_stores_coach_id(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach', 'name' => 'Alice Coach']);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.classes.store'), [
+                'name' => 'Pilates',
+                'coach' => 'Alice Coach',
+                'coach_id' => $coach->id,
+                'capacity' => 10,
+                'recurring' => false,
+                'start_time' => now()->addDay()->toDateTimeString(),
+            ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('gym_classes', ['name' => 'Pilates', 'coach_id' => $coach->id]);
+    }
+
+    public function test_create_recurring_classes_with_coach_id_inherits_coach_id(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach', 'name' => 'Bob Coach']);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.classes.store'), [
+                'name' => 'Crossfit',
+                'coach' => 'Bob Coach',
+                'coach_id' => $coach->id,
+                'capacity' => 15,
+                'recurring' => true,
+                'days' => [1], // Monday
+                'start_hour' => '07:00',
+                'end_hour' => '08:00',
+                'weeks' => 2,
+            ]);
+
+        $response->assertRedirect();
+        $count = GymClass::where('name', 'Crossfit')->where('coach_id', $coach->id)->count();
+        $this->assertGreaterThanOrEqual(1, $count);
+    }
+
+    public function test_non_coach_user_cannot_be_assigned_as_coach(): void
+    {
+        $member = User::factory()->create(['role' => 'member']);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.classes.store'), [
+                'name' => 'Yoga',
+                'coach' => 'Member Person',
+                'coach_id' => $member->id,
+                'capacity' => 10,
+                'recurring' => false,
+                'start_time' => now()->addDay()->toDateTimeString(),
+            ]);
+
+        $response->assertSessionHasErrors('coach_id');
+    }
+
+    // ── Coach attendance lockdown ─────────────────────────────────────────────
+
+    public function test_coach_can_check_in_booked_attendee(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'checked_in',
+            ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('checked_in', $booking->fresh()->status);
+    }
+
+    public function test_coach_can_mark_booked_attendee_no_show(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'no_show',
+            ]);
+
+        $response->assertRedirect();
+        $this->assertEquals('no_show', $booking->fresh()->status);
+    }
+
+    public function test_coach_cannot_revert_checked_in_to_booked(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'checked_in',
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'checked_in',
+            ]);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('checked_in', $booking->fresh()->status);
+    }
+
+    public function test_coach_cannot_change_attendance_for_no_show(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'no_show',
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'checked_in',
+            ]);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('no_show', $booking->fresh()->status);
+    }
+
+    public function test_coach_cannot_change_attendance_for_waitlisted(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'waitlisted',
+            'queue_position' => 1,
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'checked_in',
+            ]);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('waitlisted', $booking->fresh()->status);
+    }
+
+    public function test_coach_cannot_change_attendance_for_cancelled(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach']);
+        $gymClass = GymClass::factory()->create(['coach_id' => $coach->id]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'cancelled',
+        ]);
+
+        $response = $this->actingAs($coach)
+            ->post(route('coach.classes.attendance', $gymClass), [
+                'booking_id' => $booking->id,
+                'status' => 'checked_in',
+            ]);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('cancelled', $booking->fresh()->status);
+    }
+
+    public function test_admin_correction_transition_rejected_phase_1a(): void
+    {
+        $gymClass = GymClass::factory()->create();
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'checked_in',
+        ]);
+
+        // checked_in → booked correction is Phase 1B; must be rejected now
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'booked']);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('checked_in', $booking->fresh()->status);
     }
 }

@@ -63,11 +63,15 @@ class CoachClassController extends Controller
 
         $data = $request->validate([
             'booking_id' => 'required|integer|exists:class_bookings,id',
-            'status' => 'required|string|in:checked_in,no_show,booked',
+            'status' => 'required|string|in:checked_in,no_show',
         ]);
 
         $booking = ClassBooking::where('gym_class_id', $gymClass->id)
             ->findOrFail($data['booking_id']);
+
+        if ($booking->status !== 'booked') {
+            return back()->withErrors(['status' => "Cannot change attendance from '{$booking->status}'."]);
+        }
 
         $booking->status = $data['status'];
 

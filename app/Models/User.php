@@ -94,21 +94,6 @@ class User extends Authenticatable
         $this->update(['credits' => $total]);
     }
 
-    public function deductCredit(): bool
-    {
-        if ($this->credits <= 0) {
-            return false;
-        }
-        $this->decrement('credits');
-
-        return true;
-    }
-
-    public function refundCredit(): void
-    {
-        $this->increment('credits');
-    }
-
     protected function casts(): array
     {
         return [
