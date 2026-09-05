@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ClassBooking;
 use App\Models\GymClass;
 use App\Models\User;
+use App\Models\UserSubscription;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,7 +21,8 @@ class BookingTest extends TestCase
     {
         parent::setUp();
 
-        $this->user = User::factory()->create(['credits' => 5]);
+        // User with 5 credits + active subscription (BookingService requires subscription)
+        $this->user = User::factory()->withSubscription(5)->create(['credits' => 5]);
         $this->gymClass = GymClass::factory()->create([
             'capacity' => 10,
             'start_time' => now()->addDay(),
@@ -56,7 +58,10 @@ class BookingTest extends TestCase
 
     public function test_user_cannot_book_when_no_credits(): void
     {
+        // Zero out the subscription and user credits
         $this->user->update(['credits' => 0]);
+        UserSubscription::where('user_id', $this->user->id)
+            ->update(['credits_remaining' => 0]);
 
         $response = $this->actingAs($this->user)
             ->post(route('bookings.store'), ['gym_class_id' => $this->gymClass->id]);
@@ -72,10 +77,15 @@ class BookingTest extends TestCase
 
     public function test_user_cannot_double_book_same_class(): void
     {
+        $sub = UserSubscription::where('user_id', $this->user->id)->first();
+
         ClassBooking::create([
             'user_id' => $this->user->id,
             'gym_class_id' => $this->gymClass->id,
             'status' => 'booked',
+            'user_subscription_id' => $sub->id,
+            'credit_charged' => true,
+            'booked_at' => now(),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -95,7 +105,7 @@ class BookingTest extends TestCase
             'start_time' => now()->addDay(),
         ]);
 
-        $other = User::factory()->create(['credits' => 5]);
+        $other = User::factory()->withSubscription(5)->create(['credits' => 5]);
         ClassBooking::create([
             'user_id' => $other->id,
             'gym_class_id' => $fullClass->id,
@@ -156,12 +166,18 @@ class BookingTest extends TestCase
             'cancellation_cutoff_hours' => 2,
         ]);
 
+        $sub = UserSubscription::where('user_id', $this->user->id)->first();
+        $sub->update(['credits_remaining' => 4]);
+        $this->user->update(['credits' => 4]);
+
         ClassBooking::create([
             'user_id' => $this->user->id,
             'gym_class_id' => $futureClass->id,
             'status' => 'booked',
+            'user_subscription_id' => $sub->id,
+            'credit_charged' => true,
+            'booked_at' => now(),
         ]);
-        $this->user->update(['credits' => 4]);
 
         $response = $this->actingAs($this->user)
             ->delete(route('bookings.destroy'), ['gym_class_id' => $futureClass->id]);
@@ -187,12 +203,18 @@ class BookingTest extends TestCase
             'cancellation_cutoff_hours' => 2,
         ]);
 
+        $sub = UserSubscription::where('user_id', $this->user->id)->first();
+        $sub->update(['credits_remaining' => 4]);
+        $this->user->update(['credits' => 4]);
+
         ClassBooking::create([
             'user_id' => $this->user->id,
             'gym_class_id' => $imminent->id,
             'status' => 'booked',
+            'user_subscription_id' => $sub->id,
+            'credit_charged' => true,
+            'booked_at' => now(),
         ]);
-        $this->user->update(['credits' => 4]);
 
         $response = $this->actingAs($this->user)
             ->delete(route('bookings.destroy'), ['gym_class_id' => $imminent->id]);
@@ -218,13 +240,18 @@ class BookingTest extends TestCase
             'cancellation_cutoff_hours' => 1,
         ]);
 
-        $firstUser = User::factory()->create(['credits' => 4]);
-        $waitlistUser = User::factory()->create(['credits' => 5]);
+        $firstUser = User::factory()->withSubscription(5)->create(['credits' => 5]);
+        $waitlistUser = User::factory()->withSubscription(5)->create(['credits' => 5]);
+
+        $firstSub = UserSubscription::where('user_id', $firstUser->id)->first();
 
         ClassBooking::create([
             'user_id' => $firstUser->id,
             'gym_class_id' => $fullClass->id,
             'status' => 'booked',
+            'user_subscription_id' => $firstSub->id,
+            'credit_charged' => true,
+            'booked_at' => now(),
         ]);
 
         ClassBooking::create([
@@ -256,6 +283,7 @@ class BookingTest extends TestCase
             'gym_class_id' => $this->gymClass->id,
             'status' => 'waitlisted',
             'queue_position' => 1,
+            'credit_charged' => false,
         ]);
 
         // User starts with 5 credits — no credit was charged for waitlist

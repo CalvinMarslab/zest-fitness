@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassBooking;
-use App\Models\User;
+use App\Models\GymClass;
+use App\Services\BookingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -12,6 +13,8 @@ use Inertia\Response;
 
 class AdminBookingController extends Controller
 {
+    public function __construct(private readonly BookingService $bookingService) {}
+
     public function index(Request $request): Response
     {
         $bookings = ClassBooking::with([
@@ -35,13 +38,9 @@ class AdminBookingController extends Controller
 
     public function destroy(ClassBooking $booking): RedirectResponse
     {
-        // Refund credit when admin cancels a booking
-        if (in_array($booking->status, ['booked', 'checked_in'])) {
-            $booking->user->refundCredit();
-        }
-        $booking->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+        $this->bookingService->cancel($booking, auth()->user(), forceRefund: true);
 
-        return back();
+        return back()->with('success', 'Booking cancelled and credit refunded.');
     }
 
     public function updateAttendance(Request $request, ClassBooking $booking): RedirectResponse
@@ -50,9 +49,18 @@ class AdminBookingController extends Controller
             'status' => 'required|string|in:checked_in,no_show,booked',
         ]);
 
-        $booking->status = $data['status'];
+        // Enforce valid status transitions
+        $currentStatus = $booking->status;
+        $newStatus = $data['status'];
 
-        if ($data['status'] === 'checked_in') {
+        // Prevent transitioning from cancelled/late_cancel without note
+        if (in_array($currentStatus, ['cancelled', 'late_cancel'])) {
+            return back()->withErrors(['status' => 'Cannot update attendance for a cancelled booking.']);
+        }
+
+        $booking->status = $newStatus;
+
+        if ($newStatus === 'checked_in') {
             $booking->checked_in_at = now();
         }
 
@@ -65,15 +73,15 @@ class AdminBookingController extends Controller
     {
         abort_if($booking->status !== 'waitlisted', 422, 'Booking is not on the waitlist.');
 
-        \DB::transaction(function () use ($booking) {
-            $user = User::lockForUpdate()->findOrFail($booking->user_id);
+        $class = GymClass::lockForUpdate()->findOrFail($booking->gym_class_id);
 
-            $booking->update(['status' => 'booked', 'queue_position' => null]);
+        $confirmedCount = ClassBooking::where('gym_class_id', $class->id)
+            ->whereIn('status', ['booked', 'checked_in'])
+            ->count();
 
-            if ($user->credits > 0) {
-                $user->deductCredit();
-            }
-        });
+        abort_if($confirmedCount >= $class->capacity, 422, 'Class is at full capacity.');
+
+        $this->bookingService->promoteWaitlist($class);
 
         return back()->with('success', 'Waitlist entry promoted to confirmed booking.');
     }

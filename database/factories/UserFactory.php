@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\User;
+use App\Models\UserSubscription;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -41,5 +42,28 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Create the user with an active subscription (credit-based by default).
+     * Also sets user.credits to match for display sync.
+     */
+    public function withSubscription(int $credits = 5, bool $unlimited = false): static
+    {
+        return $this->afterCreating(function (User $user) use ($credits, $unlimited) {
+            UserSubscription::create([
+                'user_id' => $user->id,
+                'credits_granted' => $credits,
+                'credits_remaining' => $credits,
+                'started_at' => now()->subDay(),
+                'expires_at' => now()->addDays(30),
+                'status' => 'active',
+                'is_unlimited' => $unlimited,
+            ]);
+
+            if (! $unlimited) {
+                $user->update(['credits' => $credits]);
+            }
+        });
     }
 }

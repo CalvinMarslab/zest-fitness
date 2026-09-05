@@ -70,12 +70,17 @@ class PackageController extends Controller
             'user_id' => $user->id,
             'package_id' => $package->id,
             'credits_granted' => $package->credits,
+            'credits_remaining' => $package->credits,
             'started_at' => $now,
             'expires_at' => $now->copy()->addDays($package->period_days),
+            'status' => 'active',
+            'is_unlimited' => $package->is_unlimited,
         ]);
 
-        // Top up user credits
-        $user->increment('credits', $package->credits);
+        // Top up user credits (display only; not needed for unlimited)
+        if (! $package->is_unlimited) {
+            $user->increment('credits', $package->credits);
+        }
 
         return redirect()->route('packages')
             ->with('success', "✅ {$package->name} activated! {$package->credits} credits added.");

@@ -15,23 +15,25 @@ const PERIOD_OPTIONS = [
 const UNLIMITED = 999;
 
 function PackageForm({ initial = {}, onSubmit, onCancel }) {
-    const isUnlimitedInit = (initial.credits ?? 10) >= UNLIMITED;
+    const isUnlimitedInit = !!(initial.is_unlimited) || (initial.credits ?? 10) >= UNLIMITED;
     const [unlimited, setUnlimited] = useState(isUnlimitedInit);
 
     const form = useForm({
-        name:        initial.name        ?? '',
-        description: initial.description ?? '',
-        credits:     isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
-        period_days: initial.period_days ?? 30,
-        price:       initial.price       ?? '',
-        badge:       initial.badge       ?? '',
-        is_active:   initial.is_active   ?? true,
-        sort_order:  initial.sort_order  ?? 0,
+        name:         initial.name         ?? '',
+        description:  initial.description  ?? '',
+        credits:      isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
+        period_days:  initial.period_days  ?? 30,
+        price:        initial.price        ?? '',
+        badge:        initial.badge        ?? '',
+        is_active:    initial.is_active    ?? true,
+        is_unlimited: isUnlimitedInit,
+        sort_order:   initial.sort_order   ?? 0,
     });
 
     function toggleUnlimited(checked) {
         setUnlimited(checked);
         form.setData('credits', checked ? UNLIMITED : 10);
+        form.setData('is_unlimited', checked);
     }
 
     function submit(e) {

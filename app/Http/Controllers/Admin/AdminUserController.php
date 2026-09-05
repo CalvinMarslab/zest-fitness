@@ -8,6 +8,7 @@ use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
 use App\Models\UserSubscription;
+use App\Services\BookingService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,8 @@ use Inertia\Response;
 
 class AdminUserController extends Controller
 {
+    public function __construct(private readonly BookingService $bookingService) {}
+
     public function index(): Response
     {
         $select = ['id', 'name', 'email', 'credits', 'is_admin', 'role', 'status', 'created_at'];
@@ -101,7 +104,7 @@ class AdminUserController extends Controller
         $expiresAt = $startedAt->copy()->addDays($package->period_days);
 
         DB::transaction(function () use ($user, $package, $startedAt, $expiresAt) {
-            $sub = UserSubscription::create([
+            UserSubscription::create([
                 'user_id' => $user->id,
                 'package_id' => $package->id,
                 'credits_granted' => $package->credits,
@@ -110,10 +113,13 @@ class AdminUserController extends Controller
                 'expires_at' => $expiresAt,
                 'status' => 'active',
                 'assigned_by' => auth()->id(),
+                'is_unlimited' => $package->is_unlimited,
             ]);
 
-            // Add credits to user balance
-            $user->increment('credits', $package->credits);
+            // Sync user display credits
+            if (! $package->is_unlimited) {
+                $user->increment('credits', $package->credits);
+            }
         });
 
         return back()->with('success', "Assigned {$package->name} to {$user->name}.");
@@ -138,45 +144,22 @@ class AdminUserController extends Controller
             'gym_class_id' => 'required|integer|exists:gym_classes,id',
         ]);
 
-        DB::transaction(function () use ($user, $data) {
-            $userLocked = User::lockForUpdate()->findOrFail($user->id);
-            $class = GymClass::lockForUpdate()->findOrFail($data['gym_class_id']);
+        $class = GymClass::findOrFail($data['gym_class_id']);
+        $result = $this->bookingService->book($user, $class);
 
-            $existing = ClassBooking::where('user_id', $userLocked->id)
-                ->where('gym_class_id', $class->id)
-                ->whereIn('status', ['booked', 'waitlisted', 'checked_in'])
-                ->first();
-
-            if ($existing) {
-                return;
-            }
-
-            ClassBooking::create([
-                'user_id' => $userLocked->id,
-                'gym_class_id' => $class->id,
-                'status' => 'booked',
-            ]);
-
-            if ($userLocked->credits > 0) {
-                $userLocked->deductCredit();
-            }
+        return back()->with('success', match ($result['status']) {
+            'already_booked' => "{$user->name} is already booked into this class.",
+            'waitlisted' => "Added {$user->name} to the waitlist (position #{$result['position']}).",
+            'booked' => "Booked {$user->name} into the class.",
+            default => "Booking result: {$result['status']}.",
         });
-
-        return back()->with('success', "Booked {$user->name} into class.");
     }
 
     public function cancelBookingForMember(Request $request, User $user, ClassBooking $booking): RedirectResponse
     {
         abort_if($booking->user_id !== $user->id, 404);
 
-        DB::transaction(function () use ($user, $booking) {
-            $wasConfirmed = in_array($booking->status, ['booked', 'checked_in']);
-            $booking->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-
-            if ($wasConfirmed) {
-                $user->refundCredit();
-            }
-        });
+        $this->bookingService->cancel($booking, auth()->user(), forceRefund: true);
 
         return back()->with('success', 'Booking cancelled and credit refunded.');
     }
