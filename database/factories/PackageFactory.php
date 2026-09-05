@@ -13,7 +13,7 @@ class PackageFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->words(2, true) . ' Pack',
+            'name' => fake()->words(2, true).' Pack',
             'description' => fake()->sentence(),
             'credits' => 10,
             'period_days' => 30,

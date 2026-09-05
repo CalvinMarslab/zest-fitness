@@ -136,7 +136,7 @@ class BookingService
      */
     public function cancel(ClassBooking $booking, ?User $actor = null, ?bool $forceRefund = null): array
     {
-        return DB::transaction(function () use ($booking, $actor, $forceRefund) {
+        return DB::transaction(function () use ($booking, $forceRefund) {
             $booking = ClassBooking::where('id', $booking->id)->lockForUpdate()->firstOrFail();
 
             // Idempotent check
@@ -256,6 +256,7 @@ class BookingService
             if (! $waitlistUser || $waitlistUser->isSuspended()) {
                 // Skip ineligible user
                 $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+
                 continue;
             }
 
@@ -263,6 +264,7 @@ class BookingService
             if (! $sub || ! $sub->hasCredits()) {
                 // Skip ineligible user
                 $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+
                 continue;
             }
 

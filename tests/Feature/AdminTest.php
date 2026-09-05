@@ -226,6 +226,8 @@ class AdminTest extends TestCase
         $booking = ClassBooking::create([
             'user_id' => $this->regularUser->id,
             'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+            'credit_charged' => true,
         ]);
 
         $response = $this->actingAs($this->admin)

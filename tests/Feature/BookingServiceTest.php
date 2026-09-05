@@ -100,13 +100,14 @@ class BookingServiceTest extends TestCase
     public function test_expired_subscription_cannot_book(): void
     {
         $user = User::factory()->create(['credits' => 5]);
-        // Create an expired subscription
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
         UserSubscription::create([
             'user_id' => $user->id,
+            'package_id' => $package->id,
             'credits_granted' => 5,
             'credits_remaining' => 5,
             'started_at' => now()->subDays(60),
-            'expires_at' => now()->subDay(), // expired
+            'expires_at' => now()->subDay(),
             'status' => 'active',
             'is_unlimited' => false,
         ]);

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassBooking;
 use App\Models\ClassTemplate;
 use App\Models\GymClass;
 use App\Services\BookingService;

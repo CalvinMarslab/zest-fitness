@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
 use App\Models\UserSubscription;
@@ -103,7 +104,7 @@ class AdminPackageTest extends TestCase
             'is_unlimited' => true,
         ]);
 
-        $gymClass = \App\Models\GymClass::factory()->create([
+        $gymClass = GymClass::factory()->create([
             'capacity' => 10,
             'start_time' => now()->addDay(),
         ]);

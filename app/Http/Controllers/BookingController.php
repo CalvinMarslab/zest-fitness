@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassBooking;
 use App\Models\GymClass;
+use App\Models\User;
 use App\Services\BookingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class BookingController extends Controller
     {
         $request->validate(self::GYM_CLASS_RULES);
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
         $class = GymClass::findOrFail($request->gym_class_id);
 
@@ -41,7 +42,7 @@ class BookingController extends Controller
     {
         $request->validate(self::GYM_CLASS_RULES);
 
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         $booking = ClassBooking::where('user_id', $user->id)
