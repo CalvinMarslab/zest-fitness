@@ -16,9 +16,14 @@ class HandleInertiaRequests extends Middleware
 
     /**
      * Determine the current asset version.
+     * Returns null in testing so Inertia skips version-mismatch 409s.
      */
     public function version(Request $request): ?string
     {
+        if (app()->environment('testing')) {
+            return null;
+        }
+
         return parent::version($request);
     }
 
@@ -31,8 +36,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
-            'auth'  => [
-                'user' => $request->user()?->only('id', 'name', 'email', 'credits', 'is_admin'),
+            'auth' => [
+                'user' => $request->user()?->only('id', 'name', 'email', 'credits', 'is_admin', 'role', 'phone', 'status'),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

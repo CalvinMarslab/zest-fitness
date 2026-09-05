@@ -11,13 +11,13 @@ class TrainingController extends Controller
     {
         $programs = [
             [
-                'id'          => 'crossfit',
-                'name'        => 'CrossFit',
-                'tagline'     => 'Constantly varied, high-intensity, functional movement',
-                'color'       => 'red',
-                'icon'        => '🏋️',
+                'id' => 'crossfit',
+                'name' => 'CrossFit',
+                'tagline' => 'Constantly varied, high-intensity, functional movement',
+                'color' => 'red',
+                'icon' => '🏋️',
                 'description' => 'Build broad, general, and inclusive fitness through varied workouts targeting all ten physical domains.',
-                'schedule'    => [
+                'schedule' => [
                     ['day' => 'Monday',    'focus' => 'Strength + Metcon',   'workout' => [
                         ['type' => 'Strength', 'name' => 'Back Squat',       'sets' => '5×5 @ 80% 1RM'],
                         ['type' => 'Metcon',   'name' => 'AMRAP 12',         'detail' => '10 Pull-ups · 20 Push-ups · 30 Air Squats'],
@@ -47,13 +47,13 @@ class TrainingController extends Controller
                 ],
             ],
             [
-                'id'          => 'hyrox',
-                'name'        => 'Hyrox',
-                'tagline'     => 'The world series of fitness racing',
-                'color'       => 'yellow',
-                'icon'        => '🏃',
+                'id' => 'hyrox',
+                'name' => 'Hyrox',
+                'tagline' => 'The world series of fitness racing',
+                'color' => 'yellow',
+                'icon' => '🏃',
                 'description' => 'Prepare for 8 km of running broken up by 8 functional fitness stations — all under race conditions.',
-                'schedule'    => [
+                'schedule' => [
                     ['day' => 'Monday',    'focus' => 'Race Sim + Ski Erg',  'workout' => [
                         ['type' => 'Cardio',   'name' => 'Ski Erg Intervals', 'sets' => '8×1 min on / 1 min off'],
                         ['type' => 'Strength', 'name' => 'Sled Push',         'sets' => '6×20 m @ race weight'],

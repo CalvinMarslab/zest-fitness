@@ -9,14 +9,16 @@ class UserSubscription extends Model
 {
     protected $fillable = [
         'user_id', 'package_id', 'credits_granted', 'started_at', 'expires_at',
+        'credits_remaining', 'status', 'assigned_by',
     ];
 
     protected function casts(): array
     {
         return [
             'credits_granted' => 'integer',
-            'started_at'      => 'datetime',
-            'expires_at'      => 'datetime',
+            'credits_remaining' => 'integer',
+            'started_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 
@@ -30,8 +32,13 @@ class UserSubscription extends Model
         return $this->belongsTo(Package::class);
     }
 
+    public function assignedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
+
     public function isActive(): bool
     {
-        return $this->expires_at->isFuture();
+        return $this->status === 'active' && $this->expires_at->isFuture();
     }
 }

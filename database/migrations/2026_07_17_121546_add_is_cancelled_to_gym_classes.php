@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gym_classes', function (Blueprint $table) {
-            if (!Schema::hasColumn('gym_classes', 'is_cancelled')) {
+            if (! Schema::hasColumn('gym_classes', 'is_cancelled')) {
                 $table->boolean('is_cancelled')->default(false)->after('exercises');
             }
         });

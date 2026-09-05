@@ -24,25 +24,26 @@ class WodController extends Controller
             ->orderBy('start_time')
             ->get()
             ->map(fn (GymClass $c) => [
-                'id'         => $c->id,
-                'name'       => $c->name,
-                'coach'      => $c->coach,
+                'id' => $c->id,
+                'name' => $c->name,
+                'coach' => $c->coach,
                 'start_time' => $c->start_time->toIso8601String(),
-                'wod_type'   => $c->wod_type,
+                'wod_type' => $c->wod_type,
                 'wod_config' => $c->wod_config ?? [],
-                'exercises'  => $c->exercises ?? [],
+                'exercises' => $c->exercises ?? [],
             ]);
 
         return Inertia::render('Wod', [
-            'locked'  => false,
+            'locked' => false,
             'classes' => $classes,
-            'date'    => $today->toDateString(),
+            'date' => $today->toDateString(),
         ]);
     }
 
     public function logout(): RedirectResponse
     {
         session()->forget('wod_unlocked');
+
         return redirect()->route('wod');
     }
 
@@ -52,6 +53,7 @@ class WodController extends Controller
 
         if ($data['passcode'] === (string) config('services.wod_passcode')) {
             session(['wod_unlocked' => true]);
+
             return redirect()->route('wod');
         }
 

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 // POST /api/auth/token  { email, password, device_name }  → { token }
 // DELETE /api/auth/token  (revoke current token)
 Route::prefix('auth')->group(function () {
-    Route::post('/token',  [AuthController::class, 'issue']);
+    Route::post('/token', [AuthController::class, 'issue']);
     Route::delete('/token', [AuthController::class, 'revoke'])->middleware('auth:sanctum');
 });
 
@@ -16,6 +16,6 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->prefix('workouts')->group(function () {
     // POST   /api/workouts          log a completed workout
     // GET    /api/workouts          list recent workouts for this user
-    Route::post('/',  [WorkoutController::class, 'store']);
-    Route::get('/',   [WorkoutController::class, 'index']);
+    Route::post('/', [WorkoutController::class, 'store']);
+    Route::get('/', [WorkoutController::class, 'index']);
 });

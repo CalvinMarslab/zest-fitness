@@ -23,14 +23,14 @@ class AdminPackageController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => 'required|string|max:100',
+            'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
-            'credits'     => 'required|integer|min:1',
+            'credits' => 'required|integer|min:1',
             'period_days' => 'required|integer|min:1',
-            'price'       => 'required|numeric|min:0',
-            'badge'       => 'nullable|string|max:50',
-            'is_active'   => 'boolean',
-            'sort_order'  => 'integer|min:0',
+            'price' => 'required|numeric|min:0',
+            'badge' => 'nullable|string|max:50',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0',
         ]);
 
         Package::create($data);
@@ -41,14 +41,14 @@ class AdminPackageController extends Controller
     public function update(Request $request, Package $package): RedirectResponse
     {
         $data = $request->validate([
-            'name'        => 'sometimes|string|max:100',
+            'name' => 'sometimes|string|max:100',
             'description' => 'nullable|string|max:500',
-            'credits'     => 'sometimes|integer|min:1',
+            'credits' => 'sometimes|integer|min:1',
             'period_days' => 'sometimes|integer|min:1',
-            'price'       => 'sometimes|numeric|min:0',
-            'badge'       => 'nullable|string|max:50',
-            'is_active'   => 'boolean',
-            'sort_order'  => 'integer|min:0',
+            'price' => 'sometimes|numeric|min:0',
+            'badge' => 'nullable|string|max:50',
+            'is_active' => 'boolean',
+            'sort_order' => 'integer|min:0',
         ]);
 
         $package->update($data);

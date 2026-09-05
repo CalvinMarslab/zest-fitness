@@ -15,12 +15,12 @@ class Package extends Model
     protected function casts(): array
     {
         return [
-            'credits'     => 'integer',
+            'credits' => 'integer',
             'period_days' => 'integer',
-            'price'       => 'decimal:2',
-            'is_active'   => 'boolean',
-            'is_trial'    => 'boolean',
-            'sort_order'  => 'integer',
+            'price' => 'decimal:2',
+            'is_active' => 'boolean',
+            'is_trial' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 
@@ -36,9 +36,14 @@ class Package extends Model
             return "{$this->period_days} Days";
         }
         $months = round($this->period_days / 30);
-        if ($months === 1) return '1 Month';
-        if ($months < 12) return "{$months} Months";
+        if ($months === 1) {
+            return '1 Month';
+        }
+        if ($months < 12) {
+            return "{$months} Months";
+        }
         $years = round($months / 12);
+
         return $years === 1 ? '1 Year' : "{$years} Years";
     }
 }

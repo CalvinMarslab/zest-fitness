@@ -16,13 +16,16 @@ class AdminTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private User $regularUser;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->admin       = User::factory()->create(['is_admin' => true]);
+        $this->withoutVite();
+
+        $this->admin = User::factory()->create(['is_admin' => true]);
         $this->regularUser = User::factory()->create(['is_admin' => false]);
     }
 
@@ -143,10 +146,10 @@ class AdminTest extends TestCase
     {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.classes.store'), [
-                'name'       => 'Morning Yoga',
-                'coach'      => 'Sarah',
-                'capacity'   => 15,
-                'recurring'  => false,
+                'name' => 'Morning Yoga',
+                'coach' => 'Sarah',
+                'capacity' => 15,
+                'recurring' => false,
                 'start_time' => now()->addDay()->toDateTimeString(),
             ]);
 
@@ -158,14 +161,14 @@ class AdminTest extends TestCase
     {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.classes.store'), [
-                'name'       => 'HIIT Blast',
-                'coach'      => 'Marcus',
-                'capacity'   => 20,
-                'recurring'  => true,
-                'days'       => [1, 3, 5], // Mon, Wed, Fri
+                'name' => 'HIIT Blast',
+                'coach' => 'Marcus',
+                'capacity' => 20,
+                'recurring' => true,
+                'days' => [1, 3, 5], // Mon, Wed, Fri
                 'start_hour' => '09:00',
-                'end_hour'   => '10:00',
-                'weeks'      => 2,
+                'end_hour' => '10:00',
+                'weeks' => 2,
             ]);
 
         $response->assertRedirect();
@@ -221,7 +224,7 @@ class AdminTest extends TestCase
         $this->regularUser->update(['credits' => 4]);
 
         $booking = ClassBooking::create([
-            'user_id'      => $this->regularUser->id,
+            'user_id' => $this->regularUser->id,
             'gym_class_id' => $gymClass->id,
         ]);
 
@@ -229,7 +232,8 @@ class AdminTest extends TestCase
             ->delete(route('admin.bookings.destroy', $booking));
 
         $response->assertRedirect();
-        $this->assertDatabaseMissing('class_bookings', ['id' => $booking->id]);
+        // Admin cancel now uses status-based cancellation (Phase 1A) instead of deletion
+        $this->assertDatabaseHas('class_bookings', ['id' => $booking->id, 'status' => 'cancelled']);
 
         // Credit should be refunded
         $this->assertEquals(5, $this->regularUser->fresh()->credits);
@@ -249,12 +253,12 @@ class AdminTest extends TestCase
     {
         $response = $this->actingAs($this->admin)
             ->post(route('admin.packages.store'), [
-                'name'        => 'Starter Pack',
-                'credits'     => 10,
+                'name' => 'Starter Pack',
+                'credits' => 10,
                 'period_days' => 30,
-                'price'       => 29.99,
-                'is_active'   => true,
-                'sort_order'  => 1,
+                'price' => 29.99,
+                'is_active' => true,
+                'sort_order' => 1,
             ]);
 
         $response->assertRedirect();

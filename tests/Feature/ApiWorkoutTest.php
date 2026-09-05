@@ -12,12 +12,13 @@ class ApiWorkoutTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private string $token;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->user  = User::factory()->create();
+        $this->user = User::factory()->create();
         $this->token = $this->user->createToken('Test Device')->plainTextToken;
     }
 
@@ -33,9 +34,9 @@ class ApiWorkoutTest extends TestCase
         $response = $this->withHeaders($this->authHeaders())
             ->postJson('/api/workouts', [
                 'exercise' => 'Deadlift',
-                'value'    => '120 kg',
+                'value' => '120 kg',
                 'duration' => 2700,
-                'notes'    => 'Felt strong',
+                'notes' => 'Felt strong',
             ]);
 
         $response->assertCreated();
@@ -43,15 +44,15 @@ class ApiWorkoutTest extends TestCase
 
         // Should create a workout result
         $this->assertDatabaseHas('workout_results', [
-            'user_id'  => $this->user->id,
+            'user_id' => $this->user->id,
             'exercise' => 'Deadlift',
-            'value'    => '120 kg',
+            'value' => '120 kg',
         ]);
 
         // Should also create an activity
         $this->assertDatabaseHas('activities', [
-            'user_id'  => $this->user->id,
-            'type'     => 'deadlift',
+            'user_id' => $this->user->id,
+            'type' => 'deadlift',
             'duration' => 45, // 2700 seconds = 45 minutes
         ]);
     }
@@ -60,21 +61,21 @@ class ApiWorkoutTest extends TestCase
     {
         $response = $this->withHeaders($this->authHeaders())
             ->postJson('/api/workouts', [
-                'exercise'    => 'Running',
-                'value'       => '5 km in 25:00',
-                'duration'    => 1500,
-                'calories'    => 310,
-                'heart_rate'  => 145,
-                'distance'    => 5000,
-                'notes'       => 'Morning run',
+                'exercise' => 'Running',
+                'value' => '5 km in 25:00',
+                'duration' => 1500,
+                'calories' => 310,
+                'heart_rate' => 145,
+                'distance' => 5000,
+                'notes' => 'Morning run',
                 'recorded_at' => '2026-04-05T08:00:00Z',
             ]);
 
         $response->assertCreated();
 
         $this->assertDatabaseHas('activities', [
-            'user_id'  => $this->user->id,
-            'type'     => 'running',
+            'user_id' => $this->user->id,
+            'type' => 'running',
             'distance' => 5000,
         ]);
 
@@ -88,14 +89,14 @@ class ApiWorkoutTest extends TestCase
     {
         $this->withHeaders($this->authHeaders())
             ->postJson('/api/workouts', [
-                'exercise'    => 'Squat',
-                'value'       => '100 kg',
-                'duration'    => 1800,
+                'exercise' => 'Squat',
+                'value' => '100 kg',
+                'duration' => 1800,
                 'recorded_at' => '2026-04-01T10:00:00Z',
             ]);
 
         // Verify the result was created for the correct date
-        $result = \App\Models\WorkoutResult::where('user_id', $this->user->id)->first();
+        $result = WorkoutResult::where('user_id', $this->user->id)->first();
         $this->assertEquals('2026-04-01', $result->result_date->toDateString());
     }
 
@@ -113,7 +114,7 @@ class ApiWorkoutTest extends TestCase
         $response = $this->withHeaders($this->authHeaders())
             ->postJson('/api/workouts', [
                 'exercise' => 'Deadlift',
-                'value'    => '120 kg',
+                'value' => '120 kg',
                 'duration' => -1,
             ]);
 
@@ -160,7 +161,7 @@ class ApiWorkoutTest extends TestCase
     {
         for ($i = 0; $i < 35; $i++) {
             WorkoutResult::create([
-                'user_id' => $this->user->id, 'result_date' => "2026-04-06",
+                'user_id' => $this->user->id, 'result_date' => '2026-04-06',
                 'exercise' => "Exercise $i", 'value' => "$i kg",
             ]);
         }
@@ -178,7 +179,7 @@ class ApiWorkoutTest extends TestCase
     {
         $response = $this->postJson('/api/workouts', [
             'exercise' => 'Deadlift',
-            'value'    => '120 kg',
+            'value' => '120 kg',
             'duration' => 2700,
         ]);
 

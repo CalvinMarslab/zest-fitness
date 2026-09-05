@@ -17,6 +17,7 @@ class PackageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutVite();
         $this->user = User::factory()->create(['credits' => 0]);
     }
 
@@ -57,11 +58,11 @@ class PackageTest extends TestCase
         ]);
 
         UserSubscription::create([
-            'user_id'         => $this->user->id,
-            'package_id'      => $pkg->id,
+            'user_id' => $this->user->id,
+            'package_id' => $pkg->id,
             'credits_granted' => 10,
-            'started_at'      => now(),
-            'expires_at'      => now()->addDays(30),
+            'started_at' => now(),
+            'expires_at' => now()->addDays(30),
         ]);
 
         $response = $this->actingAs($this->user)->get(route('packages'));
@@ -100,8 +101,8 @@ class PackageTest extends TestCase
 
         // Subscription record should exist
         $this->assertDatabaseHas('user_subscriptions', [
-            'user_id'         => $this->user->id,
-            'package_id'      => $pkg->id,
+            'user_id' => $this->user->id,
+            'package_id' => $pkg->id,
             'credits_granted' => 10,
         ]);
     }

@@ -25,28 +25,28 @@ class PackageController extends Controller
             ->orderBy('sort_order')
             ->get()
             ->map(fn ($p) => [
-                'id'           => $p->id,
-                'name'         => $p->name,
-                'description'  => $p->description,
-                'credits'      => $p->credits,
-                'period_days'  => $p->period_days,
+                'id' => $p->id,
+                'name' => $p->name,
+                'description' => $p->description,
+                'credits' => $p->credits,
+                'period_days' => $p->period_days,
                 'period_label' => $p->period_label,
-                'price'        => (float) $p->price,
-                'badge'        => $p->badge,
-                'is_trial'     => $p->is_trial,
-                'trial_used'   => $p->is_trial && in_array($p->id, $usedTrialIds),
+                'price' => (float) $p->price,
+                'badge' => $p->badge,
+                'is_trial' => $p->is_trial,
+                'trial_used' => $p->is_trial && in_array($p->id, $usedTrialIds),
             ]);
 
         $active = $request->user()
             ->activeSubscription()?->load('package');
 
         return Inertia::render('Packages', [
-            'packages'           => $packages,
+            'packages' => $packages,
             'activeSubscription' => $active ? [
-                'id'           => $active->id,
+                'id' => $active->id,
                 'package_name' => $active->package->name,
-                'credits'      => $active->credits_granted,
-                'expires_at'   => $active->expires_at->toDateString(),
+                'credits' => $active->credits_granted,
+                'expires_at' => $active->expires_at->toDateString(),
             ] : null,
         ]);
     }
@@ -63,15 +63,15 @@ class PackageController extends Controller
             abort_if($alreadyUsed, 403, 'You have already used the trial package.');
         }
 
-        $now   = Carbon::now();
+        $now = Carbon::now();
 
         // Create subscription record
         UserSubscription::create([
-            'user_id'         => $user->id,
-            'package_id'      => $package->id,
+            'user_id' => $user->id,
+            'package_id' => $package->id,
             'credits_granted' => $package->credits,
-            'started_at'      => $now,
-            'expires_at'      => $now->copy()->addDays($package->period_days),
+            'started_at' => $now,
+            'expires_at' => $now->copy()->addDays($package->period_days),
         ]);
 
         // Top up user credits

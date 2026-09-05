@@ -24,10 +24,10 @@ class GymClassFactory extends Factory
         $class = $this->faker->randomElement($classes);
 
         return [
-            'name'       => $class['name'],
-            'coach'      => $class['coach'],
+            'name' => $class['name'],
+            'coach' => $class['coach'],
             'start_time' => $this->faker->dateTimeBetween('now', '+14 days'),
-            'capacity'   => $this->faker->numberBetween(8, 20),
+            'capacity' => $this->faker->numberBetween(8, 20),
         ];
     }
 }

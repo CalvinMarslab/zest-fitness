@@ -10,6 +10,12 @@ class TrainingTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
+
     public function test_user_can_view_training_page(): void
     {
         $user = User::factory()->create();

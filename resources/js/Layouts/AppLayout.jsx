@@ -44,11 +44,20 @@ const ProfileIcon = ({ active }) => (
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
 
+const BookingsIcon = ({ active }) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="4" width="18" height="18" rx="2.5" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8"/>
+        <path d="M3 9h18" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8"/>
+        <path d="M8 2v4M16 2v4" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M8 14l2 2 4-4" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
+
 const NAV_ITEMS = [
-    { label: 'Schedule', routeName: 'schedule',   Icon: ScheduleIcon },
-    { label: 'Activity', routeName: 'activities', Icon: ActivityIcon  },
-    { label: 'Results',  routeName: 'results',    Icon: TrophyIcon    },
-    { label: 'Profile',  routeName: 'profile.edit', Icon: ProfileIcon },
+    { label: 'Schedule', routeName: 'schedule',    Icon: ScheduleIcon  },
+    { label: 'Bookings', routeName: 'my-bookings', Icon: BookingsIcon  },
+    { label: 'Results',  routeName: 'results',     Icon: TrophyIcon    },
+    { label: 'Profile',  routeName: 'profile.edit', Icon: ProfileIcon  },
 ];
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
@@ -105,11 +114,11 @@ export default function AppLayout({ active, title, subtitle, children }) {
                         );
                     })}
 
-                    {/* Center Record button */}
+                    {/* Center Record / Training button */}
                     <Link href={route('training')}
                         className="flex flex-col items-center gap-1 py-1 px-2 -mt-4">
                         <div className="w-14 h-14 rounded-full bg-[#FFF34D] flex items-center justify-center shadow-[0_0_20px_rgba(255,243,77,0.4)]">
-                            <div className="w-6 h-6 rounded-full bg-[#333E48]" />
+                            <ActivityIcon active={false} />
                         </div>
                         <span className={`text-[10px] font-semibold ${active === 'Training' ? 'text-[#333E48]' : 'text-[#9AA5AE]'}`}>
                             Record

@@ -17,6 +17,7 @@ class ResultsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutVite();
         $this->user = User::factory()->create();
     }
 
@@ -86,18 +87,18 @@ class ResultsTest extends TestCase
     {
         $response = $this->actingAs($this->user)->post(route('results.store'), [
             'exercise' => 'Deadlift',
-            'value'    => '140 kg',
-            'notes'    => 'PR!',
-            'date'     => '2026-04-06',
+            'value' => '140 kg',
+            'notes' => 'PR!',
+            'date' => '2026-04-06',
         ]);
 
         $response->assertRedirect(route('results', ['date' => '2026-04-06']));
 
         $this->assertDatabaseHas('workout_results', [
-            'user_id'  => $this->user->id,
+            'user_id' => $this->user->id,
             'exercise' => 'Deadlift',
-            'value'    => '140 kg',
-            'notes'    => 'PR!',
+            'value' => '140 kg',
+            'notes' => 'PR!',
         ]);
     }
 
@@ -105,7 +106,7 @@ class ResultsTest extends TestCase
     {
         $this->actingAs($this->user)->post(route('results.store'), [
             'exercise' => 'Squat',
-            'value'    => '100 kg',
+            'value' => '100 kg',
         ]);
 
         // Verify the result was created for today's date
@@ -125,8 +126,8 @@ class ResultsTest extends TestCase
     {
         $response = $this->actingAs($this->user)->post(route('results.store'), [
             'exercise' => str_repeat('a', 101),
-            'value'    => str_repeat('b', 101),
-            'notes'    => str_repeat('c', 501),
+            'value' => str_repeat('b', 101),
+            'notes' => str_repeat('c', 501),
         ]);
 
         $response->assertSessionHasErrors(['exercise', 'value', 'notes']);
@@ -150,7 +151,7 @@ class ResultsTest extends TestCase
 
     public function test_user_cannot_delete_others_result(): void
     {
-        $other  = User::factory()->create();
+        $other = User::factory()->create();
         $result = WorkoutResult::create([
             'user_id' => $other->id, 'result_date' => Carbon::today(),
             'exercise' => 'Deadlift', 'value' => '120 kg',

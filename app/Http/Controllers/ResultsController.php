@@ -27,12 +27,12 @@ class ResultsController extends Controller
             ->orderBy('created_at')
             ->get()
             ->map(fn ($r) => [
-                'id'       => $r->id,
-                'user_id'  => $r->user_id,
-                'name'     => $r->user->name,
+                'id' => $r->id,
+                'user_id' => $r->user_id,
+                'name' => $r->user->name,
                 'exercise' => $r->exercise,
-                'value'    => $r->value,
-                'notes'    => $r->notes,
+                'value' => $r->value,
+                'notes' => $r->notes,
             ]);
 
         // Exercises the coach set for the user's booked classes on the selected date
@@ -46,10 +46,10 @@ class ResultsController extends Controller
             ->values();
 
         return Inertia::render('Results', [
-            'results'      => $results,
+            'results' => $results,
             'selectedDate' => $date,
-            'dates'        => $dates,
-            'suggestions'  => $suggestions,
+            'dates' => $dates,
+            'suggestions' => $suggestions,
         ]);
     }
 
@@ -57,20 +57,21 @@ class ResultsController extends Controller
     {
         $data = $request->validate([
             'exercise' => 'required|string|max:100',
-            'value'    => 'required|string|max:100',
-            'notes'    => 'nullable|string|max:500',
-            'date'     => 'nullable|date',
+            'value' => 'required|string|max:100',
+            'notes' => 'nullable|string|max:500',
+            'date' => 'nullable|date',
         ]);
 
         WorkoutResult::create([
-            'user_id'     => $request->user()->id,
+            'user_id' => $request->user()->id,
             'result_date' => $data['date'] ?? Carbon::today()->toDateString(),
-            'exercise'    => $data['exercise'],
-            'value'       => $data['value'],
-            'notes'       => $data['notes'] ?? null,
+            'exercise' => $data['exercise'],
+            'value' => $data['value'],
+            'notes' => $data['notes'] ?? null,
         ]);
 
         $date = $data['date'] ?? Carbon::today()->toDateString();
+
         return redirect()->route('results', ['date' => $date]);
     }
 

@@ -15,13 +15,13 @@ class ApiAuthTest extends TestCase
     public function test_user_can_get_api_token(): void
     {
         User::factory()->create([
-            'email'    => 'test@example.com',
+            'email' => 'test@example.com',
             'password' => bcrypt('password'),
         ]);
 
         $response = $this->postJson('/api/auth/token', [
-            'email'       => 'test@example.com',
-            'password'    => 'password',
+            'email' => 'test@example.com',
+            'password' => 'password',
             'device_name' => 'Apple Watch',
         ]);
 
@@ -32,13 +32,13 @@ class ApiAuthTest extends TestCase
     public function test_token_issuance_fails_with_wrong_password(): void
     {
         User::factory()->create([
-            'email'    => 'test@example.com',
+            'email' => 'test@example.com',
             'password' => bcrypt('password'),
         ]);
 
         $response = $this->postJson('/api/auth/token', [
-            'email'       => 'test@example.com',
-            'password'    => 'wrong-password',
+            'email' => 'test@example.com',
+            'password' => 'wrong-password',
             'device_name' => 'Apple Watch',
         ]);
 
@@ -57,8 +57,8 @@ class ApiAuthTest extends TestCase
     public function test_token_issuance_fails_for_nonexistent_user(): void
     {
         $response = $this->postJson('/api/auth/token', [
-            'email'       => 'nobody@example.com',
-            'password'    => 'password',
+            'email' => 'nobody@example.com',
+            'password' => 'password',
             'device_name' => 'Apple Watch',
         ]);
 
@@ -69,7 +69,7 @@ class ApiAuthTest extends TestCase
 
     public function test_user_can_revoke_token(): void
     {
-        $user  = User::factory()->create();
+        $user = User::factory()->create();
         $token = $user->createToken('Apple Watch')->plainTextToken;
 
         $response = $this->withHeaders(['Authorization' => "Bearer $token"])

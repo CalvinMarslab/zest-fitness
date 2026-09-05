@@ -15,13 +15,13 @@ class ActivityController extends Controller
             ->latest()
             ->limit(50)
             ->get()
-            ->map(fn($activity) => [
-                'id'         => $activity->id,
-                'type'       => $activity->type,
-                'duration'   => $activity->duration,
-                'distance'   => $activity->distance,
+            ->map(fn ($activity) => [
+                'id' => $activity->id,
+                'type' => $activity->type,
+                'duration' => $activity->duration,
+                'distance' => $activity->distance,
                 'class_name' => $activity->classBooking?->gymClass?->name,
-                'recorded_at'=> $activity->created_at->toIso8601String(),
+                'recorded_at' => $activity->created_at->toIso8601String(),
             ]);
 
         return Inertia::render('ActivityFeed', ['activities' => $activities]);

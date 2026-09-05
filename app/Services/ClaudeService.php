@@ -20,7 +20,7 @@ class ClaudeService
             maxTokens: 1024,
             messages: [
                 [
-                    'role'    => 'user',
+                    'role' => 'user',
                     'content' => "You are a CrossFit programming expert. Generate a {$wodType} workout for a class called \"{$className}\". Return ONLY a JSON array of exercise name strings, for example: [\"Back Squat\", \"Box Jumps\", \"Burpees\"]. Include 4-8 exercises appropriate for the {$wodType} format. No explanation, no markdown, just the raw JSON array.",
                 ],
             ],

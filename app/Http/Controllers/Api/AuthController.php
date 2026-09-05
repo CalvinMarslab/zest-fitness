@@ -19,8 +19,8 @@ class AuthController extends Controller
     public function issue(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'email'       => 'required|email',
-            'password'    => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required|string',
             'device_name' => 'required|string|max:100',
         ]);
 
@@ -30,7 +30,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $user  = Auth::user();
+        $user = Auth::user();
         $token = $user->createToken($data['device_name'])->plainTextToken;
 
         return response()->json(['token' => $token]);

@@ -11,27 +11,42 @@ class ScheduleController extends Controller
 {
     public function index(): Response
     {
-        $bookedClassIds = array_flip(
-            ClassBooking::where('user_id', auth()->id())
-                ->pluck('gym_class_id')
-                ->all()
-        );
+        $userId = auth()->id();
 
-        $classes = GymClass::withCount('bookings')
+        // Get all bookings for this user so we know status + waitlist position
+        $userBookings = ClassBooking::where('user_id', $userId)
+            ->whereIn('status', ['booked', 'waitlisted', 'checked_in'])
+            ->get(['gym_class_id', 'status', 'queue_position'])
+            ->keyBy('gym_class_id');
+
+        $classes = GymClass::withCount([
+            'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
+        ])
+            ->where('is_cancelled', false)
             ->where('start_time', '>', now())
             ->orderBy('start_time')
             ->limit(100)
             ->get()
-            ->map(fn(GymClass $class) => [
-                'id'         => $class->id,
-                'name'       => $class->name,
-                'coach'      => $class->coach,
-                'start_time' => $class->start_time->toIso8601String(),
-                'capacity'   => $class->capacity,
-                'spots_left' => max(0, $class->capacity - $class->bookings_count),
-                'is_full'    => $class->bookings_count >= $class->capacity,
-                'is_booked'  => isset($bookedClassIds[$class->id]),
-            ]);
+            ->map(function (GymClass $class) use ($userBookings) {
+                $booking = $userBookings->get($class->id);
+                $confirmedCount = $class->confirmed_count ?? 0;
+
+                return [
+                    'id' => $class->id,
+                    'name' => $class->name,
+                    'coach' => $class->coach,
+                    'start_time' => $class->start_time->toIso8601String(),
+                    'capacity' => $class->capacity,
+                    'spots_left' => max(0, $class->capacity - $confirmedCount),
+                    'is_full' => $confirmedCount >= $class->capacity,
+                    'is_booked' => $booking && $booking->status !== 'waitlisted',
+                    'is_waitlisted' => $booking && $booking->status === 'waitlisted',
+                    'queue_position' => $booking?->queue_position,
+                    'booking_status' => $booking?->status,
+                    'status' => $class->status ?? 'scheduled',
+                    'location' => $class->location,
+                ];
+            });
 
         return Inertia::render('Schedule', ['classes' => $classes]);
     }

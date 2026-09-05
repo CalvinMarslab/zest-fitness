@@ -12,7 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'credits'])]
+#[Fillable(['name', 'email', 'password', 'credits', 'role', 'phone', 'status', 'notes', 'joined_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,8 +27,8 @@ class User extends Authenticatable
     public function gymClasses(): BelongsToMany
     {
         return $this->belongsToMany(GymClass::class, 'class_bookings')
-                    ->using(ClassBooking::class)
-                    ->withTimestamps();
+            ->using(ClassBooking::class)
+            ->withTimestamps();
     }
 
     public function activities(): HasMany
@@ -45,21 +45,48 @@ class User extends Authenticatable
     {
         return $this->subscriptions()
             ->where('expires_at', '>', now())
+            ->where('status', 'active')
             ->latest('expires_at')
             ->first();
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    public function assignedClasses(): HasMany
+    {
+        return $this->hasMany(GymClass::class, 'coach_id');
+    }
+
+    public function coachTemplates(): HasMany
+    {
+        return $this->hasMany(ClassTemplate::class, 'coach_id');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin' || (bool) $this->is_admin;
+    }
+
+    public function isCoach(): bool
+    {
+        return $this->role === 'coach';
+    }
+
+    public function isMember(): bool
+    {
+        return $this->role === 'member';
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
+    }
+
     public function deductCredit(): bool
     {
         if ($this->credits <= 0) {
             return false;
         }
         $this->decrement('credits');
+
         return true;
     }
 
@@ -73,8 +100,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'credits'  => 'integer',
+            'credits' => 'integer',
             'is_admin' => 'boolean',
+            'joined_at' => 'date',
         ];
     }
 }

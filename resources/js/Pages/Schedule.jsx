@@ -154,9 +154,20 @@ function ClassDetailModal({ gymClass, onClose }) {
                         className="w-full rounded-2xl bg-red-500/20 border border-red-500/30 py-3.5 text-sm font-bold text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50">
                         {form.processing ? 'Cancelling…' : 'Cancel Booking'}
                     </button>
+                ) : gymClass.is_waitlisted ? (
+                    <div className="space-y-2">
+                        <div className="w-full rounded-2xl bg-amber-400/10 border border-amber-400/30 py-3 text-center">
+                            <p className="text-sm font-bold text-amber-600">On Waitlist — Position #{gymClass.queue_position}</p>
+                        </div>
+                        <button onClick={cancel} disabled={form.processing}
+                            className="w-full rounded-2xl bg-red-500/10 border border-red-500/20 py-3 text-sm font-semibold text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50">
+                            {form.processing ? 'Removing…' : 'Leave Waitlist'}
+                        </button>
+                    </div>
                 ) : gymClass.is_full ? (
-                    <button disabled className="w-full rounded-2xl bg-[#DDD5C0] py-3.5 text-sm font-bold text-[#555] cursor-not-allowed">
-                        Class Full
+                    <button onClick={book} disabled={form.processing}
+                        className="w-full rounded-2xl bg-amber-400/20 border border-amber-400/40 py-3.5 text-sm font-black text-amber-700 hover:bg-amber-400/30 active:scale-[0.98] transition-all disabled:opacity-50">
+                        {form.processing ? 'Joining…' : 'Join Waitlist'}
                     </button>
                 ) : (
                     <button onClick={book} disabled={form.processing}
@@ -208,6 +219,10 @@ function ClassCard({ gymClass, onSelect }) {
                 {gymClass.is_booked ? (
                     <span className="text-xs font-black text-[#333E48] bg-[#FFF34D] px-3 py-1 rounded-full">
                         BOOKED
+                    </span>
+                ) : gymClass.is_waitlisted ? (
+                    <span className="text-xs font-bold text-amber-600 bg-amber-400/20 border border-amber-400/30 px-3 py-1 rounded-full">
+                        WAITLIST #{gymClass.queue_position}
                     </span>
                 ) : gymClass.is_full ? (
                     <span className="text-xs font-bold text-red-400 bg-red-400/10 border border-red-400/20 px-3 py-1 rounded-full">

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('gym_classes', function (Blueprint $table) {
-            if (!Schema::hasColumn('gym_classes', 'wod_config')) {
+            if (! Schema::hasColumn('gym_classes', 'wod_config')) {
                 $table->json('wod_config')->nullable()->after('wod_duration');
             }
         });

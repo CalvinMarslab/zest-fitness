@@ -28,13 +28,13 @@ class WorkoutController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'exercise'    => 'required|string|max:100',
-            'value'       => 'required|string|max:100',
-            'duration'    => 'required|integer|min:0',
-            'calories'    => 'nullable|integer|min:0',
-            'heart_rate'  => 'nullable|integer|min:0',
-            'distance'    => 'nullable|integer|min:0',
-            'notes'       => 'nullable|string|max:500',
+            'exercise' => 'required|string|max:100',
+            'value' => 'required|string|max:100',
+            'duration' => 'required|integer|min:0',
+            'calories' => 'nullable|integer|min:0',
+            'heart_rate' => 'nullable|integer|min:0',
+            'distance' => 'nullable|integer|min:0',
+            'notes' => 'nullable|string|max:500',
             'recorded_at' => 'nullable|date',
         ]);
 
@@ -44,23 +44,23 @@ class WorkoutController extends Controller
 
         // Post to the Results Board for that day
         $result = WorkoutResult::create([
-            'user_id'     => $request->user()->id,
+            'user_id' => $request->user()->id,
             'result_date' => $recordedAt->toDateString(),
-            'exercise'    => $data['exercise'],
-            'value'       => $data['value'],
-            'notes'       => $this->buildNotes($data),
+            'exercise' => $data['exercise'],
+            'value' => $data['value'],
+            'notes' => $this->buildNotes($data),
         ]);
 
         // Also log to the Activity feed (duration / distance for leaderboard history)
         $request->user()->activities()->create([
-            'type'     => strtolower($data['exercise']),
+            'type' => strtolower($data['exercise']),
             'duration' => (int) round($data['duration'] / 60), // convert s → min
             'distance' => $data['distance'] ?? 0,
-            'notes'    => $data['notes'] ?? null,
+            'notes' => $data['notes'] ?? null,
         ]);
 
         return response()->json([
-            'id'      => $result->id,
+            'id' => $result->id,
             'message' => 'Workout logged successfully',
         ], 201);
     }

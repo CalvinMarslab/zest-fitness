@@ -12,6 +12,12 @@ class ScheduleTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+    }
+
     public function test_authenticated_user_can_view_schedule(): void
     {
         $user = User::factory()->create();
@@ -27,7 +33,7 @@ class ScheduleTest extends TestCase
         $user = User::factory()->create();
 
         $future = GymClass::factory()->create(['start_time' => now()->addDays(2)]);
-        $past   = GymClass::factory()->create(['start_time' => now()->subDay()]);
+        $past = GymClass::factory()->create(['start_time' => now()->subDay()]);
 
         $response = $this->actingAs($user)->get(route('schedule'));
 
@@ -40,12 +46,12 @@ class ScheduleTest extends TestCase
 
     public function test_schedule_shows_booking_status(): void
     {
-        $user    = User::factory()->create();
-        $booked  = GymClass::factory()->create(['start_time' => now()->addDay()]);
+        $user = User::factory()->create();
+        $booked = GymClass::factory()->create(['start_time' => now()->addDay()]);
         $notBook = GymClass::factory()->create(['start_time' => now()->addDays(2)]);
 
         ClassBooking::create([
-            'user_id'      => $user->id,
+            'user_id' => $user->id,
             'gym_class_id' => $booked->id,
         ]);
 
@@ -70,13 +76,12 @@ class ScheduleTest extends TestCase
         $user = User::factory()->create();
 
         $gymClass = GymClass::factory()->create([
-            'capacity'   => 10,
+            'capacity' => 10,
             'start_time' => now()->addDay(),
         ]);
 
         // Create 3 bookings from other users
-        User::factory(3)->create()->each(fn ($u) =>
-            ClassBooking::create(['user_id' => $u->id, 'gym_class_id' => $gymClass->id])
+        User::factory(3)->create()->each(fn ($u) => ClassBooking::create(['user_id' => $u->id, 'gym_class_id' => $gymClass->id])
         );
 
         $response = $this->actingAs($user)->get(route('schedule'));
@@ -92,7 +97,7 @@ class ScheduleTest extends TestCase
         $user = User::factory()->create();
 
         $gymClass = GymClass::factory()->create([
-            'capacity'   => 1,
+            'capacity' => 1,
             'start_time' => now()->addDay(),
         ]);
 
