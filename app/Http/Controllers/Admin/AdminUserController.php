@@ -298,10 +298,11 @@ class AdminUserController extends Controller
             'already_booked' => back()->withErrors(['booking' => "{$user->name} is already booked into this class."]),
             'no_subscription' => back()->withErrors(['booking' => 'Member has no active package.']),
             'no_credits' => back()->withErrors(['booking' => 'Member has no credits remaining.']),
-            'weekly_limit_exceeded' => back()->withErrors(['booking' => 'Member has reached their weekly booking limit.']),
-            'member_suspended' => back()->withErrors(['booking' => 'Member account is suspended.']),
-            'class_cancelled' => back()->withErrors(['booking' => 'This class has been cancelled.']),
-            'booking_not_open' => back()->withErrors(['booking' => 'Booking is not open for this class.']),
+            'weekly_limit_reached' => back()->withErrors(['booking' => 'Member has reached their weekly booking limit.']),
+            'suspended' => back()->withErrors(['booking' => 'Member account is suspended.']),
+            'cancelled' => back()->withErrors(['booking' => 'This class has been cancelled.']),
+            'not_open' => back()->withErrors(['booking' => 'Booking is not open for this class yet.']),
+            'closed' => back()->withErrors(['booking' => 'Booking for this class is already closed.']),
             default => back()->withErrors(['booking' => "Booking not completed ({$result['status']})."]),
         };
     }

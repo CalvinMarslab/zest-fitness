@@ -974,4 +974,141 @@ class AdminTest extends TestCase
         $this->assertEquals(4, $this->regularUser->fresh()->credits);
         $this->assertCount(1, ClassBooking::where('user_id', $this->regularUser->id)->get());
     }
+
+    // ── bookForMember status contract ────────────────────────────────────────
+
+    private function memberWithSub(int $credits = 5, ?int $weeklyLimit = null): array
+    {
+        $package = Package::factory()->create([
+            'credits' => $credits,
+            'is_unlimited' => false,
+            'weekly_booking_limit' => $weeklyLimit,
+        ]);
+        $sub = UserSubscription::create([
+            'user_id' => $this->regularUser->id,
+            'package_id' => $package->id,
+            'credits_granted' => $credits,
+            'credits_remaining' => $credits,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+        $this->regularUser->update(['credits' => $credits]);
+
+        return [$sub, $package];
+    }
+
+    public function test_admin_book_member_weekly_limit_reached_returns_booking_error(): void
+    {
+        [$sub] = $this->memberWithSub(credits: 5, weeklyLimit: 1);
+
+        // Consume the weekly slot by inserting a booking tied to this subscription
+        $usedClass = GymClass::factory()->create([
+            'capacity' => 10,
+            'start_time' => now()->startOfWeek(Carbon::MONDAY)->addHours(10),
+        ]);
+        ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $usedClass->id,
+            'user_subscription_id' => $sub->id,
+            'status' => 'booked',
+            'credit_charged' => true,
+            'booked_at' => now(),
+        ]);
+        $sub->decrement('credits_remaining');
+        $this->regularUser->update(['credits' => 4]);
+
+        // Second class same week → weekly_limit_reached
+        $nextClass = GymClass::factory()->create([
+            'capacity' => 10,
+            'start_time' => now()->startOfWeek(Carbon::MONDAY)->addDays(1)->addHours(10),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), ['gym_class_id' => $nextClass->id]);
+
+        $response->assertSessionHasErrors('booking');
+        $this->assertSame(
+            'Member has reached their weekly booking limit.',
+            $response->getSession()->get('errors')->first('booking')
+        );
+    }
+
+    public function test_admin_book_member_suspended_returns_booking_error(): void
+    {
+        $this->memberWithSub();
+        $this->regularUser->update(['status' => 'suspended']);
+
+        $gymClass = GymClass::factory()->create(['capacity' => 10, 'start_time' => now()->addDay()]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), ['gym_class_id' => $gymClass->id]);
+
+        $response->assertSessionHasErrors('booking');
+        $this->assertSame(
+            'Member account is suspended.',
+            $response->getSession()->get('errors')->first('booking')
+        );
+    }
+
+    public function test_admin_book_member_cancelled_class_returns_booking_error(): void
+    {
+        $this->memberWithSub();
+
+        $gymClass = GymClass::factory()->create([
+            'capacity' => 10,
+            'start_time' => now()->addDay(),
+            'is_cancelled' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), ['gym_class_id' => $gymClass->id]);
+
+        $response->assertSessionHasErrors('booking');
+        $this->assertSame(
+            'This class has been cancelled.',
+            $response->getSession()->get('errors')->first('booking')
+        );
+    }
+
+    public function test_admin_book_member_booking_not_open_returns_booking_error(): void
+    {
+        $this->memberWithSub();
+
+        $gymClass = GymClass::factory()->create([
+            'capacity' => 10,
+            'start_time' => now()->addDays(3),
+            'booking_opens_at' => now()->addDays(1),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), ['gym_class_id' => $gymClass->id]);
+
+        $response->assertSessionHasErrors('booking');
+        $this->assertSame(
+            'Booking is not open for this class yet.',
+            $response->getSession()->get('errors')->first('booking')
+        );
+    }
+
+    public function test_admin_book_member_closed_booking_window_returns_booking_error(): void
+    {
+        $this->memberWithSub();
+
+        $gymClass = GymClass::factory()->create([
+            'capacity' => 10,
+            'start_time' => now()->addDay(),
+            'booking_closes_at' => now()->subHour(),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), ['gym_class_id' => $gymClass->id]);
+
+        $response->assertSessionHasErrors('booking');
+        $this->assertSame(
+            'Booking for this class is already closed.',
+            $response->getSession()->get('errors')->first('booking')
+        );
+    }
 }
