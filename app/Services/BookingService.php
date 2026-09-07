@@ -373,29 +373,31 @@ class BookingService
             return;
         }
 
-        $user = User::where('id', $booking->user_id)->first();
-        $sub = null;
+        // The subscription that originally held the credit must still exist.
+        // If it is missing we cannot restore the credit — throw so the surrounding
+        // DB transaction rolls back and the broken reference can be investigated.
+        $sub = UserSubscription::where('id', $booking->user_subscription_id)->lockForUpdate()->first();
 
-        if ($booking->user_subscription_id) {
-            $sub = UserSubscription::where('id', $booking->user_subscription_id)->lockForUpdate()->first();
-            if ($sub) {
-                $sub->increment('credits_remaining');
-            }
+        if (! $sub) {
+            throw new \RuntimeException(
+                "Cannot refund booking #{$booking->id}: original subscription #{$booking->user_subscription_id} not found. Manual investigation required."
+            );
         }
 
-        if ($user) {
-            $user->syncCreditSummary();
-            $user->refresh();
+        $user = User::where('id', $booking->user_id)->lockForUpdate()->firstOrFail();
 
-            CreditTransaction::create([
-                'user_id' => $user->id,
-                'user_subscription_id' => $booking->user_subscription_id,
-                'class_booking_id' => $booking->id,
-                'type' => $transactionType,
-                'amount' => +1,
-                'balance_after' => $user->credits,
-            ]);
-        }
+        $sub->increment('credits_remaining');
+        $user->syncCreditSummary();
+        $user->refresh();
+
+        CreditTransaction::create([
+            'user_id' => $user->id,
+            'user_subscription_id' => $sub->id,
+            'class_booking_id' => $booking->id,
+            'type' => $transactionType,
+            'amount' => +1,
+            'balance_after' => $user->credits,
+        ]);
 
         $booking->update(['credit_refunded_at' => now()]);
     }
