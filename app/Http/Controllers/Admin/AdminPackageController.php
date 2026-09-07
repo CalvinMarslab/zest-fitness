@@ -25,12 +25,13 @@ class AdminPackageController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'description' => 'nullable|string|max:500',
-            'credits' => 'required|integer|min:1',
+            'credits' => 'required|integer|min:0',
             'period_days' => 'required|integer|min:1',
             'price' => 'required|numeric|min:0',
             'badge' => 'nullable|string|max:50',
             'is_active' => 'boolean',
             'is_unlimited' => 'boolean',
+            'weekly_booking_limit' => 'nullable|integer|min:1|max:255',
             'sort_order' => 'integer|min:0',
         ]);
 
@@ -44,12 +45,13 @@ class AdminPackageController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|string|max:100',
             'description' => 'nullable|string|max:500',
-            'credits' => 'sometimes|integer|min:1',
+            'credits' => 'sometimes|integer|min:0',
             'period_days' => 'sometimes|integer|min:1',
             'price' => 'sometimes|numeric|min:0',
             'badge' => 'nullable|string|max:50',
             'is_active' => 'boolean',
             'is_unlimited' => 'boolean',
+            'weekly_booking_limit' => 'nullable|integer|min:1|max:255',
             'sort_order' => 'integer|min:0',
         ]);
 

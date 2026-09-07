@@ -8,6 +8,7 @@ use App\Models\GymClass;
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\UserSubscription;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class BookingService
@@ -52,13 +53,17 @@ class BookingService
                 return ['status' => 'already_booked'];
             }
 
-            // Find eligible subscription
+            // Find eligible subscription (respects weekly booking cap)
             $sub = $this->findEligibleSubscription($user, $class);
             if (! $sub) {
+                if ($this->hasSubBlockedByWeeklyCap($user, $class)) {
+                    return ['status' => 'weekly_limit_reached'];
+                }
+
                 return ['status' => 'no_subscription'];
             }
 
-            // Credit check
+            // Credit check (findEligibleSubscription already filters; guard for safety)
             if (! $sub->hasCredits()) {
                 return ['status' => 'no_credits'];
             }
@@ -279,7 +284,7 @@ class BookingService
 
                 $sub = $this->findEligibleSubscription($waitlistUser, $class);
                 if (! $sub || ! $sub->hasCredits()) {
-                    // Skip ineligible user
+                    // Skip — no credits or all subscriptions weekly-capped
                     $next->update(['status' => 'cancelled', 'cancelled_at' => now()]);
 
                     continue;
@@ -307,7 +312,8 @@ class BookingService
     }
 
     /**
-     * Find the earliest-expiring active subscription with available credits.
+     * Find the earliest-expiring active subscription with available credits
+     * that has not hit its weekly booking cap for the given class's week.
      *
      * Phase 1A: all active non-expired packages are eligible for all classes.
      * Per-package class/category eligibility rules are reserved for Phase 1B.
@@ -322,12 +328,71 @@ class BookingService
             ->get();
 
         foreach ($subs as $sub) {
-            if ($sub->hasCredits()) {
-                return $sub;
+            if (! $sub->hasCredits()) {
+                continue;
             }
+
+            $limit = $sub->package->weekly_booking_limit ?? null;
+            if ($limit !== null && $this->weeklyBookingsUsed($user, $sub, $class) >= $limit) {
+                continue;
+            }
+
+            return $sub;
         }
 
         return null;
+    }
+
+    /**
+     * True if the user has an active subscription with credits whose only
+     * blocker is the weekly booking cap for this class's calendar week.
+     */
+    private function hasSubBlockedByWeeklyCap(User $user, GymClass $class): bool
+    {
+        $subs = UserSubscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->with('package')
+            ->get();
+
+        foreach ($subs as $sub) {
+            if (! $sub->hasCredits()) {
+                continue;
+            }
+            $limit = $sub->package->weekly_booking_limit ?? null;
+            if ($limit !== null && $this->weeklyBookingsUsed($user, $sub, $class) >= $limit) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Count this user's consumed (booked/checked_in/no_show) bookings funded by $sub
+     * for classes whose start_time falls within the same Mon–Sun calendar week
+     * as $forClass->start_time, evaluated in the app timezone (Asia/Kuala_Lumpur).
+     *
+     * Counts by class start_time, not by when the booking was created.
+     * Cancelled, waitlisted, and late_cancel bookings are excluded.
+     * no_show is counted — the slot was consumed and is not freed retroactively.
+     * Week boundaries are computed in the app timezone then converted to UTC for DB comparison.
+     */
+    private function weeklyBookingsUsed(User $user, UserSubscription $sub, GymClass $forClass): int
+    {
+        $tz = config('app.timezone');
+        $classTime = Carbon::parse($forClass->start_time)->setTimezone($tz);
+
+        $weekStartUtc = $classTime->clone()->startOfWeek(Carbon::MONDAY)->utc();
+        $weekEndUtc = $classTime->clone()->endOfWeek(Carbon::SUNDAY)->utc();
+
+        return ClassBooking::where('user_id', $user->id)
+            ->where('user_subscription_id', $sub->id)
+            ->whereIn('status', ['booked', 'checked_in', 'no_show'])
+            ->whereHas('gymClass', function ($q) use ($weekStartUtc, $weekEndUtc) {
+                $q->whereBetween('start_time', [$weekStartUtc, $weekEndUtc]);
+            })
+            ->count();
     }
 
     /**

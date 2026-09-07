@@ -12,7 +12,8 @@ class Package extends Model
 
     protected $fillable = [
         'name', 'description', 'credits', 'period_days',
-        'price', 'badge', 'is_active', 'is_trial', 'is_unlimited', 'sort_order',
+        'price', 'badge', 'is_active', 'is_trial', 'is_unlimited',
+        'weekly_booking_limit', 'sort_order',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Package extends Model
             'is_active' => 'boolean',
             'is_trial' => 'boolean',
             'is_unlimited' => 'boolean',
+            'weekly_booking_limit' => 'integer',
             'sort_order' => 'integer',
         ];
     }

@@ -21,12 +21,18 @@ class PackageFactory extends Factory
             'is_active' => true,
             'is_trial' => false,
             'is_unlimited' => false,
+            'weekly_booking_limit' => null,
             'sort_order' => 0,
         ];
     }
 
     public function unlimited(): static
     {
-        return $this->state(['is_unlimited' => true, 'credits' => 0]);
+        return $this->state(['is_unlimited' => true, 'credits' => 0, 'weekly_booking_limit' => null]);
+    }
+
+    public function limitedPlan(int $weeklyLimit = 2): static
+    {
+        return $this->state(['is_unlimited' => false, 'weekly_booking_limit' => $weeklyLimit]);
     }
 }

@@ -17,23 +17,31 @@ const UNLIMITED = 999;
 function PackageForm({ initial = {}, onSubmit, onCancel }) {
     const isUnlimitedInit = !!(initial.is_unlimited) || (initial.credits ?? 10) >= UNLIMITED;
     const [unlimited, setUnlimited] = useState(isUnlimitedInit);
+    const hasWeeklyLimitInit = initial.weekly_booking_limit != null;
+    const [hasWeeklyLimit, setHasWeeklyLimit] = useState(hasWeeklyLimitInit);
 
     const form = useForm({
-        name:         initial.name         ?? '',
-        description:  initial.description  ?? '',
-        credits:      isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
-        period_days:  initial.period_days  ?? 30,
-        price:        initial.price        ?? '',
-        badge:        initial.badge        ?? '',
-        is_active:    initial.is_active    ?? true,
-        is_unlimited: isUnlimitedInit,
-        sort_order:   initial.sort_order   ?? 0,
+        name:                 initial.name                 ?? '',
+        description:          initial.description          ?? '',
+        credits:              isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
+        period_days:          initial.period_days          ?? 30,
+        price:                initial.price                ?? '',
+        badge:                initial.badge                ?? '',
+        is_active:            initial.is_active            ?? true,
+        is_unlimited:         isUnlimitedInit,
+        weekly_booking_limit: initial.weekly_booking_limit ?? null,
+        sort_order:           initial.sort_order           ?? 0,
     });
 
     function toggleUnlimited(checked) {
         setUnlimited(checked);
         form.setData('credits', checked ? UNLIMITED : 10);
         form.setData('is_unlimited', checked);
+    }
+
+    function toggleWeeklyLimit(checked) {
+        setHasWeeklyLimit(checked);
+        form.setData('weekly_booking_limit', checked ? 2 : null);
     }
 
     function submit(e) {
@@ -112,6 +120,32 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
                     className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
                     placeholder="Short description shown on the pricing page"
                     value={form.data.description} onChange={(e) => form.setData('description', e.target.value)} />
+            </div>
+
+            {/* Weekly booking limit */}
+            <div className="col-span-2">
+                <label className="text-xs font-semibold text-gray-500 uppercase">Weekly Booking Limit</label>
+                <div className="mt-1.5 flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" name="weekly_limit_type" checked={!hasWeeklyLimit}
+                            onChange={() => toggleWeeklyLimit(false)}
+                            className="accent-orange-500" />
+                        No Limit
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm cursor-pointer">
+                        <input type="radio" name="weekly_limit_type" checked={hasWeeklyLimit}
+                            onChange={() => toggleWeeklyLimit(true)}
+                            className="accent-orange-500" />
+                        Limit to
+                    </label>
+                    {hasWeeklyLimit && (
+                        <input type="number" min="1" max="255"
+                            className="w-20 border rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            value={form.data.weekly_booking_limit ?? 2}
+                            onChange={(e) => form.setData('weekly_booking_limit', parseInt(e.target.value))} />
+                    )}
+                    {hasWeeklyLimit && <span className="text-sm text-gray-500">classes / week</span>}
+                </div>
             </div>
 
             {/* Active toggle */}
@@ -212,10 +246,15 @@ export default function Packages({ packages }) {
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <span className="bg-orange-50 text-orange-600 text-sm font-bold px-3 py-1 rounded-full">
-                                {pkg.credits >= UNLIMITED ? '∞ Unlimited' : `${pkg.credits} credits`}
+                                {pkg.is_unlimited || pkg.credits >= UNLIMITED ? '∞ Unlimited' : `${pkg.credits} credits`}
                             </span>
+                            {pkg.weekly_booking_limit != null && (
+                                <span className="bg-blue-50 text-blue-600 text-xs font-semibold px-2 py-1 rounded-full">
+                                    {pkg.weekly_booking_limit}x/week
+                                </span>
+                            )}
                             {!pkg.is_active && (
                                 <span className="bg-gray-100 text-gray-400 text-xs px-2 py-1 rounded-full">Inactive</span>
                             )}
