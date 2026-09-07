@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ClassBooking;
+use App\Models\CreditTransaction;
 use App\Models\GymClass;
 use App\Models\SystemSetting;
 use App\Models\User;
@@ -112,15 +113,16 @@ class BookingService
 
             if ($existing) {
                 $existing->update($bookingData);
+                $confirmedBooking = $existing;
             } else {
-                ClassBooking::create(array_merge($bookingData, [
+                $confirmedBooking = ClassBooking::create(array_merge($bookingData, [
                     'user_id' => $user->id,
                     'gym_class_id' => $class->id,
                 ]));
             }
 
             if (! $isUnlimited) {
-                $this->deductCredit($user, $sub);
+                $this->deductCredit($user, $sub, $confirmedBooking);
             }
 
             $sub->refresh();
@@ -224,7 +226,7 @@ class BookingService
 
             foreach ($confirmed as $booking) {
                 $booking->update(['status' => 'cancelled', 'cancelled_at' => now()]);
-                $this->refundCredit($booking);
+                $this->refundCredit($booking, 'class_cancel_refund');
             }
 
             // Cancel waitlisted bookings without refund
@@ -294,7 +296,7 @@ class BookingService
                 ]);
 
                 if (! $isUnlimited) {
-                    $this->deductCredit($waitlistUser, $sub);
+                    $this->deductCredit($waitlistUser, $sub, $next);
                 }
 
                 return ['status' => 'promoted'];
@@ -331,7 +333,7 @@ class BookingService
     /**
      * Deduct a credit from the subscription and sync the user display credits.
      */
-    private function deductCredit(User $user, UserSubscription $sub): void
+    private function deductCredit(User $user, UserSubscription $sub, ClassBooking $booking): void
     {
         if ($sub->isUnlimited()) {
             return;
@@ -339,6 +341,16 @@ class BookingService
 
         $sub->decrement('credits_remaining');
         $user->syncCreditSummary();
+
+        $user->refresh();
+        CreditTransaction::create([
+            'user_id' => $user->id,
+            'user_subscription_id' => $sub->id,
+            'class_booking_id' => $booking->id,
+            'type' => 'booking_deduction',
+            'amount' => -1,
+            'balance_after' => $user->credits,
+        ]);
     }
 
     /**
@@ -349,7 +361,7 @@ class BookingService
      * - credit_charged = true  → refund to the original subscription exactly once
      * - credit_refunded_at is the idempotency guard
      */
-    private function refundCredit(ClassBooking $booking): void
+    private function refundCredit(ClassBooking $booking, string $transactionType = 'booking_refund'): void
     {
         // Idempotent guard
         if ($booking->credit_refunded_at !== null) {
@@ -362,6 +374,7 @@ class BookingService
         }
 
         $user = User::where('id', $booking->user_id)->first();
+        $sub = null;
 
         if ($booking->user_subscription_id) {
             $sub = UserSubscription::where('id', $booking->user_subscription_id)->lockForUpdate()->first();
@@ -372,6 +385,16 @@ class BookingService
 
         if ($user) {
             $user->syncCreditSummary();
+            $user->refresh();
+
+            CreditTransaction::create([
+                'user_id' => $user->id,
+                'user_subscription_id' => $booking->user_subscription_id,
+                'class_booking_id' => $booking->id,
+                'type' => $transactionType,
+                'amount' => +1,
+                'balance_after' => $user->credits,
+            ]);
         }
 
         $booking->update(['credit_refunded_at' => now()]);

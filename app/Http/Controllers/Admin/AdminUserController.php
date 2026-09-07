@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ClassBooking;
+use App\Models\CreditTransaction;
 use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
@@ -54,18 +55,62 @@ class AdminUserController extends Controller
     public function show(User $user): Response
     {
         $user->load([
-            'subscriptions.package',
-            'bookings' => fn ($q) => $q->with('gymClass:id,name,start_time,capacity')
-                ->orderByDesc('created_at')
-                ->limit(50),
+            'subscriptions' => fn ($q) => $q->with('package', 'assignedBy:id,name')->orderByDesc('created_at'),
         ]);
+
+        $now = now();
+
+        $upcomingBookings = ClassBooking::where('user_id', $user->id)
+            ->whereIn('status', ['booked', 'waitlisted', 'checked_in'])
+            ->with('gymClass:id,name,coach,start_time,capacity')
+            ->whereHas('gymClass', fn ($q) => $q->where('start_time', '>=', $now))
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn ($b) => $this->formatBookingForAdmin($b));
+
+        $recentBookings = ClassBooking::where('user_id', $user->id)
+            ->with('gymClass:id,name,coach,start_time,capacity')
+            ->whereHas('gymClass', fn ($q) => $q->where('start_time', '<', $now))
+            ->orderByDesc('created_at')
+            ->limit(30)
+            ->get()
+            ->map(fn ($b) => $this->formatBookingForAdmin($b));
+
+        $creditHistory = CreditTransaction::where('user_id', $user->id)
+            ->with(['booking.gymClass:id,name,start_time', 'actor:id,name', 'subscription.package:id,name'])
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
 
         $packages = Package::where('is_active', true)->orderBy('sort_order')->get();
 
         return Inertia::render('Admin/UserProfile', [
             'member' => $user,
             'packages' => $packages,
+            'upcomingBookings' => $upcomingBookings,
+            'recentBookings' => $recentBookings,
+            'creditHistory' => $creditHistory,
         ]);
+    }
+
+    private function formatBookingForAdmin(ClassBooking $booking): array
+    {
+        return [
+            'id' => $booking->id,
+            'gym_class_id' => $booking->gym_class_id,
+            'status' => $booking->status,
+            'queue_position' => $booking->queue_position,
+            'credit_charged' => $booking->credit_charged,
+            'booked_at' => $booking->booked_at?->toIso8601String(),
+            'cancelled_at' => $booking->cancelled_at?->toIso8601String(),
+            'checked_in_at' => $booking->checked_in_at?->toIso8601String(),
+            'gym_class' => $booking->gymClass ? [
+                'id' => $booking->gymClass->id,
+                'name' => $booking->gymClass->name,
+                'coach' => $booking->gymClass->coach,
+                'start_time' => $booking->gymClass->start_time->toIso8601String(),
+            ] : null,
+        ];
     }
 
     public function update(Request $request, User $user): RedirectResponse
@@ -86,6 +131,10 @@ class AdminUserController extends Controller
     public function destroy(User $user): RedirectResponse
     {
         abort_if($user->id === auth()->id(), 422, 'Cannot delete yourself.');
+
+        $hasHistory = $user->bookings()->exists() || $user->creditTransactions()->exists();
+        abort_if($hasHistory, 422, 'Cannot delete a member with booking or credit history. Suspend the account instead.');
+
         $user->delete();
 
         return back();
@@ -103,7 +152,7 @@ class AdminUserController extends Controller
         $expiresAt = $startedAt->copy()->addDays($package->period_days);
 
         DB::transaction(function () use ($user, $package, $startedAt, $expiresAt) {
-            UserSubscription::create([
+            $sub = UserSubscription::create([
                 'user_id' => $user->id,
                 'package_id' => $package->id,
                 'credits_granted' => $package->credits,
@@ -116,6 +165,19 @@ class AdminUserController extends Controller
             ]);
 
             $user->syncCreditSummary();
+            $user->refresh();
+
+            if (! $package->is_unlimited) {
+                CreditTransaction::create([
+                    'user_id' => $user->id,
+                    'user_subscription_id' => $sub->id,
+                    'type' => 'package_assigned',
+                    'amount' => $package->credits,
+                    'balance_after' => $user->credits,
+                    'reason' => "Package assigned: {$package->name}",
+                    'actor_user_id' => auth()->id(),
+                ]);
+            }
         });
 
         return back()->with('success', "Assigned {$package->name} to {$user->name}.");
@@ -141,6 +203,17 @@ class AdminUserController extends Controller
         $sub->update(['credits_remaining' => $newCredits]);
 
         $user->syncCreditSummary();
+        $user->refresh();
+
+        CreditTransaction::create([
+            'user_id' => $user->id,
+            'user_subscription_id' => $sub->id,
+            'type' => 'admin_adjustment',
+            'amount' => $data['adjustment'],
+            'balance_after' => $user->credits,
+            'reason' => $data['notes'] ?? null,
+            'actor_user_id' => auth()->id(),
+        ]);
 
         return back()->with('success', 'Credits adjusted.');
     }

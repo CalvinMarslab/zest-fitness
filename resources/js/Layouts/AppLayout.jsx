@@ -64,7 +64,30 @@ const NAV_ITEMS = [
 
 export default function AppLayout({ active, title, subtitle, children }) {
     const { auth } = usePage().props;
-    const credits   = auth?.user?.credits ?? 0;
+    const sub     = auth?.active_subscription;
+    const credits = auth?.user?.credits ?? 0;
+
+    // Derive badge label from subscription
+    let badgeLabel, badgeStyle;
+    if (sub?.is_unlimited) {
+        badgeLabel = `${sub.package_name ?? 'Unlimited'} ∞`;
+        badgeStyle = 'bg-purple-400/20 text-purple-700 border-purple-300/40';
+    } else if (sub) {
+        const cr = sub.credits_remaining ?? credits;
+        badgeLabel = `${cr} cr`;
+        badgeStyle = cr > 0
+            ? (sub.expires_soon ? 'bg-amber-400/20 text-amber-700 border-amber-400/40' : 'bg-[#FFF34D] text-[#333E48] border-[#FFF34D]')
+            : 'bg-red-500/10 text-red-500 border-red-400/40';
+    } else {
+        badgeLabel = `${credits} cr`;
+        badgeStyle = credits > 0
+            ? 'bg-[#FFF34D] text-[#333E48] border-[#FFF34D]'
+            : 'bg-red-500/10 text-red-500 border-red-400/40';
+    }
+
+    const expiryLabel = sub && !sub.is_unlimited
+        ? `${sub.package_name ?? 'Package'} · exp ${sub.expires_at}`
+        : null;
 
     return (
         <div className="min-h-screen bg-[#CFE0EB]">
@@ -77,15 +100,16 @@ export default function AppLayout({ active, title, subtitle, children }) {
                     </Link>
 
                     <div className="flex items-center gap-3">
-                        {/* Credit badge — taps to packages/top-up */}
+                        {/* Credit badge — taps to packages */}
                         <Link href={route('packages')} className={[
                             'flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border transition-opacity active:opacity-70',
-                            credits > 0
-                                ? 'bg-[#FFF34D] text-[#333E48] border-[#FFF34D]'
-                                : 'bg-red-500/10 text-red-500 border-red-400/40',
-                        ].join(' ')}>
+                            badgeStyle,
+                        ].join(' ')} title={expiryLabel ?? undefined}>
                             <span>🎟</span>
-                            <span>{credits} cr</span>
+                            <span>{badgeLabel}</span>
+                            {sub?.expires_soon && !sub?.is_unlimited && (
+                                <span className="text-[9px] font-black uppercase tracking-wide opacity-70">exp soon</span>
+                            )}
                         </Link>
 
                     </div>

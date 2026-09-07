@@ -34,10 +34,26 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $activeSub = null;
+        if ($user) {
+            $sub = $user->activeSubscription()?->load('package');
+            if ($sub) {
+                $activeSub = [
+                    'package_name' => $sub->package?->name,
+                    'credits_remaining' => $sub->credits_remaining,
+                    'is_unlimited' => (bool) $sub->is_unlimited,
+                    'expires_at' => $sub->expires_at?->toDateString(),
+                    'expires_soon' => $sub->expires_at?->diffInDays(now()) <= 14,
+                ];
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user()?->only('id', 'name', 'email', 'credits', 'is_admin', 'role', 'phone', 'status'),
+                'user' => $user?->only('id', 'name', 'email', 'credits', 'is_admin', 'role', 'phone', 'status'),
+                'active_subscription' => $activeSub,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

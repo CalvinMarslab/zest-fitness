@@ -13,13 +13,16 @@ function SuccessFlash() {
 
 function ActiveBanner({ sub }) {
     if (!sub) return null;
+    const creditsLabel = sub.is_unlimited
+        ? '∞ Unlimited'
+        : `${sub.credits_remaining ?? sub.credits} credits remaining`;
     return (
         <div className="mb-6 bg-[#FFF34D]/5 border border-[#FFF34D]/20 rounded-2xl px-4 py-4">
             <p className="text-sm font-bold text-[#FFF34D]">
-                ✅ Active: <span className="font-black">{sub.package_name}</span>
+                Active: <span className="font-black">{sub.package_name}</span>
             </p>
             <p className="text-xs text-[#FFF34D]/60 mt-0.5">
-                {sub.credits} credits granted · Expires {new Date(sub.expires_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                {creditsLabel} · Expires {new Date(sub.expires_at + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </p>
         </div>
     );
@@ -28,6 +31,53 @@ function ActiveBanner({ sub }) {
 function PackageCard({ pkg, onSubscribe }) {
     const hasBadge  = !!pkg.badge;
     const trialUsed = pkg.trial_used;
+    const isPaid    = !pkg.is_trial;
+
+    // Paid packages: members cannot self-activate
+    if (isPaid) {
+        return (
+            <div className={`relative bg-[#FFFFFF] rounded-2xl border p-5 flex flex-col ${
+                hasBadge ? 'border-[#FFF34D]/40' : 'border-[#DDD5C0]'
+            }`}>
+                {hasBadge && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className="text-xs font-black px-4 py-1 rounded-full whitespace-nowrap bg-[#FFF34D] text-[#333E48]">
+                            {pkg.badge}
+                        </span>
+                    </div>
+                )}
+                <div className="mb-4 mt-1">
+                    <h3 className="text-lg font-black text-[#333E48]">{pkg.name}</h3>
+                    {pkg.description && (
+                        <p className="text-sm text-[#666] mt-1">{pkg.description}</p>
+                    )}
+                </div>
+                <div className="mb-4">
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-black text-[#333E48]">
+                            RM {parseFloat(pkg.price).toFixed(2)}
+                        </span>
+                        <span className="text-sm text-[#555]">/ {pkg.period_label}</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2 bg-[#CFE0EB]/30 border border-[#CFE0EB]/60 rounded-xl px-3 py-2 w-full">
+                        <span className="text-xl">🎟</span>
+                        <div>
+                            <p className="text-sm font-black text-[#333E48]">
+                                {pkg.is_unlimited ? '∞ Unlimited' : `${pkg.credits} Credits`}
+                            </p>
+                            <p className="text-xs text-[#5A7A8A]">Valid for {pkg.period_label}</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex-1" />
+                <div className="w-full py-3 rounded-2xl text-sm font-bold text-center bg-gray-100 text-gray-500 border border-gray-200 cursor-not-allowed">
+                    Contact the gym to purchase
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`relative bg-[#FFFFFF] rounded-2xl border p-5 flex flex-col ${
@@ -40,7 +90,7 @@ function PackageCard({ pkg, onSubscribe }) {
                             ? 'bg-[#EDE5D4] text-[#666]'
                             : 'bg-[#FFF34D] text-[#333E48]'
                     }`}>
-                        {trialUsed ? '✓ Trial Used' : pkg.badge}
+                        {trialUsed ? 'Trial Used' : pkg.badge}
                     </span>
                 </div>
             )}
@@ -71,9 +121,7 @@ function PackageCard({ pkg, onSubscribe }) {
                 </div>
             </div>
 
-            {pkg.is_trial && (
-                <p className="text-xs text-amber-500/80 mb-4">⚡ One-time trial — available once per member</p>
-            )}
+            <p className="text-xs text-amber-500/80 mb-4">⚡ One-time trial — available once per member</p>
 
             <div className="flex-1" />
 
@@ -125,6 +173,7 @@ export default function Packages({ packages, activeSubscription }) {
 
             <div className="mt-8 bg-white/60 rounded-2xl border border-[#DDD5C0] p-4 text-xs text-[#6A7A85] text-center">
                 Credits are used to book classes (1 credit per class). Credits do not expire within the validity period.
+                To purchase a package, contact the gym.
             </div>
         </AppLayout>
     );

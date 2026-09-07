@@ -25,11 +25,27 @@ function ClassDetailModal({ gymClass, onClose }) {
     const book   = () => form.post(route('bookings.store'),   { preserveScroll: true, onSuccess: onClose });
     const cancel = () => form.delete(route('bookings.destroy'), { preserveScroll: true, onSuccess: onClose });
 
-    const start    = parseLocalDT(gymClass.start_time);
-    const icon     = getActivityType(gymClass.name.toLowerCase().split(' ')[0]).icon;
-    const pct      = Math.round(((gymClass.capacity - gymClass.spots_left) / gymClass.capacity) * 100);
-    const cancelBy = new Date(start.getTime() - 2 * 60 * 60 * 1000);
-    const isPast   = start <= new Date();
+    const start   = parseLocalDT(gymClass.start_time);
+    const icon    = getActivityType(gymClass.name.toLowerCase().split(' ')[0]).icon;
+    const pct     = Math.round(((gymClass.capacity - gymClass.spots_left) / gymClass.capacity) * 100);
+    const isPast  = start <= new Date();
+
+    // Use backend-provided cancellation metadata
+    const cutoffAt   = gymClass.cancellation_cutoff_at ? new Date(gymClass.cancellation_cutoff_at) : null;
+    const cancelMsg  = (() => {
+        if (!gymClass.can_cancel) return null;
+        if (gymClass.is_waitlisted) return 'Leaving the waitlist will remove your spot in the queue.';
+        if (gymClass.will_refund_credit) {
+            const timeStr = cutoffAt
+                ? cutoffAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                : null;
+            return timeStr
+                ? `Cancel by ${timeStr} to get your credit back.`
+                : 'Your credit will be refunded.';
+        }
+        if (gymClass.credit_charged) return 'Late cancellation — your credit will NOT be refunded.';
+        return 'No credit was charged for this booking.';
+    })();
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -90,9 +106,14 @@ function ClassDetailModal({ gymClass, onClose }) {
                 </div>
 
                 {/* Cancellation policy */}
-                {gymClass.is_booked && !isPast && (
-                    <p className="text-xs text-[#888] text-center mb-4">
-                        Cancel by {cancelBy.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} for a full credit refund
+                {cancelMsg && !isPast && (
+                    <p className={[
+                        'text-xs text-center mb-4',
+                        gymClass.credit_charged && !gymClass.will_refund_credit && gymClass.is_booked
+                            ? 'text-red-400 font-semibold'
+                            : 'text-[#888]',
+                    ].join(' ')}>
+                        {cancelMsg}
                     </p>
                 )}
 
@@ -108,8 +129,11 @@ function ClassDetailModal({ gymClass, onClose }) {
                     confirmCancel ? (
                         <div className="space-y-2">
                             <p className="text-sm text-center text-[#555] mb-1">
-                                Cancel this booking?{' '}
-                                <strong className="text-[#333E48]">1 credit</strong> will be refunded.
+                                {gymClass.will_refund_credit
+                                    ? <>Cancel this booking? <strong className="text-[#333E48]">1 credit</strong> will be refunded.</>
+                                    : gymClass.credit_charged
+                                        ? <>Cancel this booking? <strong className="text-red-500">Your credit will NOT be refunded</strong> (late cancellation).</>
+                                        : 'Cancel this booking? (No credit was charged — unlimited booking.)'}
                             </p>
                             <button onClick={cancel} disabled={form.processing}
                                 className="w-full rounded-2xl bg-red-500/20 border border-red-500/30 py-3.5 text-sm font-bold text-red-400 hover:bg-red-500/30 transition-colors disabled:opacity-50">

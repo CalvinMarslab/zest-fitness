@@ -1,32 +1,27 @@
-import { useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { useState, useMemo } from 'react';
+import { router, useForm, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
-// ─── Edit modal ───────────────────────────────────────────────────────────────
+// ─── Edit modal (name / phone / notes / role only) ────────────────────────────
 
 function EditUserModal({ user, onClose }) {
-    const originalCredits = user.credits;
     const form = useForm({
-        name:           user.name,
-        credits:        user.credits,
-        is_admin:       user.is_admin,
-        credit_reason:  '',
+        name:  user.name,
+        phone: user.phone ?? '',
+        notes: user.notes ?? '',
+        role:  user.role ?? 'member',
     });
-
-    const creditDelta = form.data.credits - originalCredits;
 
     function submit(e) {
         e.preventDefault();
-        if (creditDelta !== 0 && !form.data.credit_reason.trim()) {
-            return alert('Please enter a reason for the credit adjustment.');
-        }
         form.patch(route('admin.users.update', user.id), { onSuccess: onClose });
     }
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <h2 className="font-bold text-lg mb-4">Edit — {user.name}</h2>
+                <h2 className="font-bold text-lg mb-1">Edit — {user.name}</h2>
+                <p className="text-xs text-gray-400 mb-4">To adjust credits or assign a package, open the member's profile.</p>
                 <form onSubmit={submit} className="flex flex-col gap-3">
                     <div>
                         <label className="text-xs font-semibold text-gray-500 uppercase">Name</label>
@@ -37,42 +32,34 @@ function EditUserModal({ user, onClose }) {
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Credits</label>
-                        <div className="flex items-center gap-2 mt-1">
-                            <input
-                                type="number" min="0"
-                                className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                                value={form.data.credits}
-                                onChange={(e) => form.setData('credits', parseInt(e.target.value) || 0)}
-                            />
-                            {creditDelta !== 0 && (
-                                <span className={`text-sm font-bold whitespace-nowrap ${creditDelta > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                    {creditDelta > 0 ? `+${creditDelta}` : creditDelta}
-                                </span>
-                            )}
-                        </div>
-                        {creditDelta !== 0 && (
-                            <div className="mt-2">
-                                <label className="text-xs font-semibold text-gray-500 uppercase">Reason for adjustment <span className="text-red-400">*</span></label>
-                                <input
-                                    className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                                    placeholder="e.g. Makeup class, bonus, correction…"
-                                    value={form.data.credit_reason}
-                                    onChange={(e) => form.setData('credit_reason', e.target.value)}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Phone</label>
                         <input
-                            type="checkbox"
-                            checked={form.data.is_admin}
-                            onChange={(e) => form.setData('is_admin', e.target.checked)}
-                            className="accent-orange-500"
+                            className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            value={form.data.phone}
+                            onChange={(e) => form.setData('phone', e.target.value)}
                         />
-                        Admin access
-                    </label>
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Notes</label>
+                        <textarea
+                            rows={2}
+                            className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            value={form.data.notes}
+                            onChange={(e) => form.setData('notes', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Role</label>
+                        <select
+                            className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            value={form.data.role}
+                            onChange={(e) => form.setData('role', e.target.value)}
+                        >
+                            <option value="member">Member</option>
+                            <option value="coach">Coach</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
 
                     <div className="flex gap-2 mt-2">
                         <button type="button" onClick={onClose}
@@ -139,18 +126,22 @@ function Avatar({ name, color = 'orange' }) {
     };
     return (
         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${styles[color]}`}>
-            {name[0].toUpperCase()}
+            {(name ?? '?')[0].toUpperCase()}
         </div>
     );
 }
 
-// ─── Delete confirmation ──────────────────────────────────────────────────────
+// ─── Status badge ─────────────────────────────────────────────────────────────
 
-function confirmDelete(user) {
-    const role = user.is_admin ? 'admin account' : 'member account';
-    return confirm(
-        `Delete ${user.name}?\n\nThis will permanently remove their ${role}, all bookings, and activity history. This cannot be undone.`
-    );
+function StatusBadge({ status }) {
+    if (status === 'suspended') {
+        return (
+            <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">
+                Suspended
+            </span>
+        );
+    }
+    return null;
 }
 
 // ─── Management Team table ────────────────────────────────────────────────────
@@ -208,30 +199,60 @@ function TeamTable({ team, onEdit, onDelete }) {
 // ─── Members table ────────────────────────────────────────────────────────────
 
 function MembersTable({ customers, onEdit, onDelete }) {
+    const [search, setSearch] = useState('');
+
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase().trim();
+        if (!q) return customers;
+        return customers.filter((u) =>
+            u.name?.toLowerCase().includes(q) ||
+            u.email?.toLowerCase().includes(q) ||
+            u.phone?.toLowerCase().includes(q)
+        );
+    }, [customers, search]);
+
     return (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            {/* Search bar */}
+            <div className="px-4 py-3 border-b border-gray-100">
+                <input
+                    type="search"
+                    placeholder="Search by name, email or phone…"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                />
+            </div>
             <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[580px]">
                 <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
-                        {['Name', 'Email', 'Credits', 'Bookings', 'Activities', ''].map((h) => (
+                        {['Name', 'Email', 'Credits', 'Bookings', ''].map((h) => (
                             <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                    {customers.length === 0 && (
+                    {filtered.length === 0 && (
                         <tr>
-                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">No members yet.</td>
+                            <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">
+                                {search ? 'No members match your search.' : 'No members yet.'}
+                            </td>
                         </tr>
                     )}
-                    {customers.map((u) => (
+                    {filtered.map((u) => (
                         <tr key={u.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-3 font-medium text-gray-900">
-                                <div className="flex items-center gap-2">
+                                <Link
+                                    href={route('admin.users.show', u.id)}
+                                    className="flex items-center gap-2 hover:text-orange-600 transition-colors"
+                                >
                                     <Avatar name={u.name} color="orange" />
-                                    {u.name}
-                                </div>
+                                    <div>
+                                        <p>{u.name}</p>
+                                        <StatusBadge status={u.status} />
+                                    </div>
+                                </Link>
                             </td>
                             <td className="px-4 py-3 text-gray-500">{u.email}</td>
                             <td className="px-4 py-3">
@@ -240,11 +261,16 @@ function MembersTable({ customers, onEdit, onDelete }) {
                                 </span>
                             </td>
                             <td className="px-4 py-3 text-gray-500">{u.bookings_count}</td>
-                            <td className="px-4 py-3 text-gray-500">{u.activities_count}</td>
                             <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
+                                    <Link
+                                        href={route('admin.users.show', u.id)}
+                                        className="text-xs text-orange-500 hover:text-orange-700 font-medium"
+                                    >
+                                        View
+                                    </Link>
                                     <button onClick={() => onEdit(u)}
-                                        className="text-xs text-orange-500 hover:text-orange-700 font-medium">Edit</button>
+                                        className="text-xs text-gray-500 hover:text-gray-700 font-medium">Edit</button>
                                     <button onClick={() => onDelete(u)}
                                         className="text-xs text-gray-300 hover:text-red-400 font-medium transition-colors">Delete</button>
                                 </div>
@@ -265,8 +291,14 @@ export default function Users({ team, customers, stats }) {
     const [editing, setEditing] = useState(null);
 
     function deleteUser(user) {
-        if (!confirmDelete(user)) return;
-        router.delete(route('admin.users.destroy', user.id));
+        const role = user.is_admin ? 'admin account' : 'member account';
+        if (!confirm(`Delete ${user.name}?\n\nMembers with booking or credit history cannot be deleted — suspend the account instead.\n\nThis will permanently remove the ${role}. This cannot be undone.`)) return;
+        router.delete(route('admin.users.destroy', user.id), {
+            onError: (errors) => {
+                const msg = Object.values(errors)[0] ?? 'Could not delete this user.';
+                alert(msg);
+            },
+        });
     }
 
     return (

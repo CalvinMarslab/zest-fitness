@@ -85,9 +85,10 @@ class PackageTest extends TestCase
 
     public function test_user_can_subscribe_to_package(): void
     {
+        // Only trial packages are self-service
         $pkg = Package::create([
-            'name' => 'Monthly', 'credits' => 10, 'period_days' => 30,
-            'price' => 29.99, 'is_active' => true, 'sort_order' => 1,
+            'name' => 'Trial', 'credits' => 10, 'period_days' => 30,
+            'price' => 0, 'is_active' => true, 'sort_order' => 1, 'is_trial' => true,
         ]);
 
         $response = $this->actingAs($this->user)
@@ -110,9 +111,10 @@ class PackageTest extends TestCase
     public function test_subscribing_syncs_credits_from_subscription_total(): void
     {
         // credits is display-only; syncCreditSummary() rebuilds from subscription sum
+        // Only trial packages are self-service
         $pkg = Package::create([
-            'name' => 'Monthly', 'credits' => 10, 'period_days' => 30,
-            'price' => 29.99, 'is_active' => true, 'sort_order' => 1,
+            'name' => 'Trial', 'credits' => 10, 'period_days' => 30,
+            'price' => 0, 'is_active' => true, 'sort_order' => 1, 'is_trial' => true,
         ]);
 
         $this->actingAs($this->user)

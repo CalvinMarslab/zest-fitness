@@ -59,7 +59,10 @@ function FilterBar({ filters }) {
 
 export default function Bookings({ bookings, filters }) {
     function cancelBooking(b) {
-        if (!confirm(`Cancel ${b.user?.name}'s booking for "${b.gym_class?.name}"?\n\n1 credit will be refunded to their account.`)) return;
+        const creditNote = b.credit_charged
+            ? '1 credit will be force-refunded to their account.'
+            : 'No credit was charged (unlimited booking) — nothing to refund.';
+        if (!confirm(`Cancel ${b.user?.name}'s booking for "${b.gym_class?.name}"?\n\n${creditNote}`)) return;
         router.delete(route('admin.bookings.destroy', b.id));
     }
 

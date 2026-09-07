@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CreditTransaction;
 use App\Models\Package;
 use App\Models\UserSubscription;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,8 @@ class PackageController extends Controller
             'activeSubscription' => $active ? [
                 'id' => $active->id,
                 'package_name' => $active->package->name,
-                'credits' => $active->credits_granted,
+                'credits_remaining' => $active->credits_remaining,
+                'is_unlimited' => (bool) $active->is_unlimited,
                 'expires_at' => $active->expires_at->toDateString(),
             ] : null,
         ]);
@@ -55,18 +57,17 @@ class PackageController extends Controller
     {
         abort_if(! $package->is_active, 404);
 
+        // Only trial packages are self-service; paid packages require admin assignment
+        abort_if(! $package->is_trial, 403, 'Paid packages must be assigned by a staff member. Please contact the gym.');
+
         $user = $request->user();
 
-        // Trial packages can only be purchased once per user
-        if ($package->is_trial) {
-            $alreadyUsed = $user->subscriptions()->where('package_id', $package->id)->exists();
-            abort_if($alreadyUsed, 403, 'You have already used the trial package.');
-        }
+        $alreadyUsed = $user->subscriptions()->where('package_id', $package->id)->exists();
+        abort_if($alreadyUsed, 403, 'You have already used the trial package.');
 
         $now = Carbon::now();
 
-        // Create subscription record
-        UserSubscription::create([
+        $sub = UserSubscription::create([
             'user_id' => $user->id,
             'package_id' => $package->id,
             'credits_granted' => $package->credits,
@@ -78,8 +79,20 @@ class PackageController extends Controller
         ]);
 
         $user->syncCreditSummary();
+        $user->refresh();
+
+        if (! $package->is_unlimited) {
+            CreditTransaction::create([
+                'user_id' => $user->id,
+                'user_subscription_id' => $sub->id,
+                'type' => 'package_assigned',
+                'amount' => $package->credits,
+                'balance_after' => $user->credits,
+                'reason' => "Trial package activated: {$package->name}",
+            ]);
+        }
 
         return redirect()->route('packages')
-            ->with('success', "✅ {$package->name} activated! {$package->credits} credits added.");
+            ->with('success', "✅ {$package->name} activated! You have {$package->credits} credits.");
     }
 }
