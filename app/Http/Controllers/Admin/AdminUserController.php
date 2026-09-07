@@ -84,9 +84,28 @@ class AdminUserController extends Controller
 
         $packages = Package::where('is_active', true)->orderBy('sort_order')->get();
 
+        $upcomingClasses = GymClass::where('start_time', '>=', $now)
+            ->where('is_cancelled', false)
+            ->orderBy('start_time')
+            ->limit(30)
+            ->withCount([
+                'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
+            ])
+            ->get(['id', 'name', 'coach', 'start_time', 'capacity'])
+            ->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'coach' => $c->coach,
+                'start_time' => $c->start_time->toIso8601String(),
+                'capacity' => $c->capacity,
+                'confirmed_count' => $c->confirmed_count,
+                'spots_left' => max(0, $c->capacity - $c->confirmed_count),
+            ]);
+
         return Inertia::render('Admin/UserProfile', [
             'member' => $user,
             'packages' => $packages,
+            'upcomingClasses' => $upcomingClasses,
             'upcomingBookings' => $upcomingBookings,
             'recentBookings' => $recentBookings,
             'creditHistory' => $creditHistory,

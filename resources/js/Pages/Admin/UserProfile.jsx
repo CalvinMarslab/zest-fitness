@@ -184,40 +184,94 @@ function AdjustCreditsModal({ member, onClose }) {
 
 // ─── Book for Member modal ────────────────────────────────────────────────────
 
-function BookForMemberModal({ member, onClose }) {
+function BookForMemberModal({ member, upcomingClasses, onClose }) {
+    const [search, setSearch] = useState('');
+    const [selectedClass, setSelectedClass] = useState(null);
     const form = useForm({ gym_class_id: '' });
 
     function submit(e) {
         e.preventDefault();
+        if (!selectedClass) return;
+        form.setData('gym_class_id', selectedClass.id);
         form.post(route('admin.users.bookings.store', member.id), { onSuccess: onClose });
     }
 
+    const filtered = (upcomingClasses ?? []).filter((c) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return c.name.toLowerCase().includes(q) || c.coach.toLowerCase().includes(q);
+    });
+
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <h2 className="font-bold text-lg mb-4">Book Class for {member.name}</h2>
-                <form onSubmit={submit} className="flex flex-col gap-4">
-                    <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Class ID</label>
-                        <input
-                            type="number"
-                            required
-                            placeholder="Enter the class ID…"
-                            className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
-                            value={form.data.gym_class_id}
-                            onChange={(e) => form.setData('gym_class_id', e.target.value)}
-                        />
-                    </div>
-                    {form.errors.gym_class_id && <p className="text-xs text-red-500">{form.errors.gym_class_id}</p>}
-                    <div className="flex gap-2 mt-2">
-                        <button type="button" onClick={onClose}
-                            className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
-                        <button type="submit" disabled={form.processing}
-                            className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-60">
-                            {form.processing ? 'Booking…' : 'Book'}
-                        </button>
-                    </div>
-                </form>
+
+                {/* Search */}
+                <input
+                    type="text"
+                    placeholder="Search by class name or coach…"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 mb-3"
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setSelectedClass(null); }}
+                    autoFocus
+                />
+
+                {/* Class list */}
+                <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 mb-4 min-h-0">
+                    {filtered.length === 0 ? (
+                        <p className="text-center text-sm text-gray-400 py-8">No upcoming classes found.</p>
+                    ) : (
+                        filtered.slice(0, 20).map((c) => {
+                            const isSelected = selectedClass?.id === c.id;
+                            const dt = new Date(c.start_time);
+                            const dateStr = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                            const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                            const full = c.spots_left <= 0;
+                            return (
+                                <button
+                                    key={c.id}
+                                    type="button"
+                                    onClick={() => setSelectedClass(isSelected ? null : c)}
+                                    className={[
+                                        'w-full text-left rounded-xl border px-3 py-2.5 transition-colors',
+                                        isSelected
+                                            ? 'border-orange-400 bg-orange-50'
+                                            : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30',
+                                    ].join(' ')}
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
+                                            <p className="text-xs text-gray-500">{c.coach} · {dateStr} {timeStr}</p>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                                                full ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50'
+                                            }`}>
+                                                {full ? 'Full' : `${c.spots_left} left`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+
+                {form.errors.gym_class_id && <p className="text-xs text-red-500 mb-2">{form.errors.gym_class_id}</p>}
+
+                <div className="flex gap-2">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
+                    <button
+                        type="button"
+                        disabled={!selectedClass || form.processing}
+                        onClick={submit}
+                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-60">
+                        {form.processing ? 'Booking…' : selectedClass ? `Book into ${selectedClass.name}` : 'Select a class'}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -276,7 +330,7 @@ function TxType({ type, amount }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function UserProfile({ member, packages, upcomingBookings, recentBookings, creditHistory }) {
+export default function UserProfile({ member, packages, upcomingClasses, upcomingBookings, recentBookings, creditHistory }) {
     const [modal, setModal] = useState(null); // 'package' | 'credits' | 'book'
 
     const activeSubs = (member.subscriptions ?? []).filter(
@@ -495,7 +549,7 @@ export default function UserProfile({ member, packages, upcomingBookings, recent
                 <AdjustCreditsModal member={member} onClose={() => setModal(null)} />
             )}
             {modal === 'book' && (
-                <BookForMemberModal member={member} onClose={() => setModal(null)} />
+                <BookForMemberModal member={member} upcomingClasses={upcomingClasses} onClose={() => setModal(null)} />
             )}
         </AdminLayout>
     );

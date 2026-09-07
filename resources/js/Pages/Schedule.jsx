@@ -282,24 +282,39 @@ function getDateLabel(dateStr) {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+// ─── Day nav helpers ──────────────────────────────────────────────────────────
+
+function todayDateStr() {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Schedule({ classes }) {
     const [detailClass, setDetailClass] = useState(null);
 
-    const today = new Date();
-    const todayLabel = today.toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric',
-    });
+    // All unique sorted dates in the schedule window
+    const allDates = [...new Set(classes.map((c) => c.date_label))].sort();
+    const todayStr = todayDateStr();
 
-    // Group classes by date_label
-    const grouped = classes.reduce((acc, cls) => {
-        const key = cls.date_label;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(cls);
-        return acc;
-    }, {});
-    const groupedDates = Object.keys(grouped).sort();
+    // Default to today if present, else the first date
+    const [selectedDate, setSelectedDate] = useState(() =>
+        allDates.includes(todayStr) ? todayStr : (allDates[0] ?? todayStr)
+    );
+
+    // Ensure selected date is always in bounds when classes change
+    const effectiveDate = allDates.includes(selectedDate) ? selectedDate : (allDates[0] ?? selectedDate);
+
+    const selectedIdx = allDates.indexOf(effectiveDate);
+    const canPrev = selectedIdx > 0;
+    const canNext = selectedIdx < allDates.length - 1;
+
+    const dayClasses = classes.filter((c) => c.date_label === effectiveDate);
+
+    function goToDate(d) { setSelectedDate(d); }
+    function goPrev() { if (canPrev) setSelectedDate(allDates[selectedIdx - 1]); }
+    function goNext() { if (canNext) setSelectedDate(allDates[selectedIdx + 1]); }
 
     return (
         <AppLayout active="Schedule">
@@ -308,33 +323,92 @@ export default function Schedule({ classes }) {
             )}
 
             {/* Header */}
-            <div className="mb-5">
+            <div className="mb-4">
                 <h1 className="text-2xl font-black text-[#333E48]">Schedule</h1>
-                <p className="text-sm text-[#666] mt-0.5">{todayLabel}</p>
             </div>
 
             <FlashMessage />
 
-            {/* Class list */}
+            {/* Day navigation */}
+            {allDates.length > 0 && (
+                <div className="flex items-center gap-2 mb-5">
+                    <button
+                        onClick={goPrev}
+                        disabled={!canPrev}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-[#DDD5C0] text-[#333E48] font-bold text-lg disabled:opacity-30 transition-opacity"
+                        aria-label="Previous day"
+                    >
+                        ‹
+                    </button>
+
+                    <div className="flex-1 text-center">
+                        <p className="text-lg font-black text-[#333E48]">{getDateLabel(effectiveDate)}</p>
+                        <p className="text-xs text-[#888] mt-0.5">
+                            {new Date(effectiveDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </p>
+                    </div>
+
+                    <button
+                        onClick={goNext}
+                        disabled={!canNext}
+                        className="w-9 h-9 flex items-center justify-center rounded-full bg-[#DDD5C0] text-[#333E48] font-bold text-lg disabled:opacity-30 transition-opacity"
+                        aria-label="Next day"
+                    >
+                        ›
+                    </button>
+                </div>
+            )}
+
+            {/* Today button — show only when not already on today */}
+            {effectiveDate !== todayStr && allDates.includes(todayStr) && (
+                <div className="flex justify-center mb-4">
+                    <button
+                        onClick={() => goToDate(todayStr)}
+                        className="text-xs font-bold text-[#333E48] bg-[#FFF34D] px-4 py-1.5 rounded-full hover:bg-[#FFE633] transition-colors"
+                    >
+                        Jump to Today
+                    </button>
+                </div>
+            )}
+
+            {/* Class list for selected day */}
             {classes.length === 0 ? (
                 <div className="text-center py-20">
                     <p className="text-5xl mb-4">🗓️</p>
                     <p className="font-bold text-[#333E48]">No upcoming classes</p>
                     <p className="text-sm mt-1 text-[#666]">Check back soon</p>
                 </div>
+            ) : dayClasses.length === 0 ? (
+                <div className="text-center py-16">
+                    <p className="text-4xl mb-3">🏖️</p>
+                    <p className="font-bold text-[#333E48]">No classes this day</p>
+                    <p className="text-sm mt-1 text-[#666]">Try another day</p>
+                </div>
             ) : (
-                <div className="flex flex-col gap-6">
-                    {groupedDates.map(dateKey => (
-                        <div key={dateKey}>
-                            <h2 className="text-sm font-bold text-[#888] uppercase tracking-wider mb-3">
-                                {getDateLabel(dateKey)}
-                            </h2>
-                            <div className="flex flex-col gap-4">
-                                {grouped[dateKey].map(cls => (
-                                    <ClassCard key={cls.id} gymClass={cls} onSelect={setDetailClass} />
-                                ))}
-                            </div>
-                        </div>
+                <div className="flex flex-col gap-4">
+                    {dayClasses.map(cls => (
+                        <ClassCard key={cls.id} gymClass={cls} onSelect={setDetailClass} />
+                    ))}
+                </div>
+            )}
+
+            {/* Day dots — quick nav */}
+            {allDates.length > 1 && (
+                <div className="flex justify-center gap-1.5 mt-8 pb-4">
+                    {allDates.map((d) => (
+                        <button
+                            key={d}
+                            onClick={() => goToDate(d)}
+                            aria-label={getDateLabel(d)}
+                            className={[
+                                'w-2 h-2 rounded-full transition-all',
+                                d === effectiveDate
+                                    ? 'bg-[#FFF34D] scale-125'
+                                    : d === todayStr
+                                        ? 'bg-[#BFD857]'
+                                        : 'bg-[#DDD5C0]',
+                            ].join(' ')}
+                        />
                     ))}
                 </div>
             )}

@@ -716,7 +716,7 @@ function ExerciseBuilder({ exercises, onChange, showModal, setShowModal }) {
 
 // ── Edit panel ────────────────────────────────────────────────────────────────
 
-function EditPanel({ gymClass, template }) {
+function EditPanel({ gymClass, template, members }) {
     const [showExerciseModal, setShowExerciseModal] = useState(false);
     const form = useForm({
         name:         gymClass.name,
@@ -855,21 +855,204 @@ function EditPanel({ gymClass, template }) {
                 </form>
             </div>
 
+            <AttendeePanel gymClass={gymClass} members={members ?? []} template={template} />
+        </div>
+    );
+}
+
+// ── Attendance action buttons ─────────────────────────────────────────────────
+
+function AttendanceBtn({ bookingId, currentStatus }) {
+    const [busy, setBusy] = useState(false);
+
+    function mark(status) {
+        if (busy) return;
+        setBusy(true);
+        router.patch(
+            route('admin.bookings.attendance', bookingId),
+            { status },
+            { preserveScroll: true, onFinish: () => setBusy(false) }
+        );
+    }
+
+    if (currentStatus === 'checked_in') {
+        return (
+            <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-100 px-2 py-0.5 rounded-full">
+                ✓ Checked In
+            </span>
+        );
+    }
+    if (currentStatus === 'no_show') {
+        return (
+            <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 px-2 py-0.5 rounded-full">
+                No Show
+            </span>
+        );
+    }
+    return (
+        <div className="flex gap-1">
+            <button
+                type="button"
+                onClick={() => mark('checked_in')}
+                disabled={busy}
+                className="text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
+            >
+                Check In
+            </button>
+            <button
+                type="button"
+                onClick={() => mark('no_show')}
+                disabled={busy}
+                className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
+            >
+                No Show
+            </button>
+        </div>
+    );
+}
+
+// ── Book Member modal (class-slot context) ────────────────────────────────────
+
+function BookMemberModal({ gymClass, members, onClose }) {
+    const [search, setSearch] = useState('');
+    const [selectedMember, setSelectedMember] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+
+    const alreadyBooked = new Set((gymClass.attendees ?? []).map((a) => a.id));
+    const onWaitlist    = new Set((gymClass.waitlist ?? []).map((a) => a.id));
+
+    const filtered = (members ?? []).filter((m) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
+    });
+
+    function book() {
+        if (!selectedMember || submitting) return;
+        setSubmitting(true);
+        router.post(
+            route('admin.users.bookings.store', selectedMember.id),
+            { gym_class_id: gymClass.id },
+            { preserveScroll: true, onSuccess: onClose, onFinish: () => setSubmitting(false) }
+        );
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <h2 className="font-bold text-base mb-3">Book Member into Class</h2>
+                <p className="text-xs text-gray-400 mb-3">{gymClass.name} · {formatDate(gymClass.start_time)}</p>
+
+                <input
+                    type="text"
+                    placeholder="Search member name or email…"
+                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 mb-3"
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setSelectedMember(null); }}
+                    autoFocus
+                />
+
+                <div className="flex-1 overflow-y-auto flex flex-col gap-1 mb-4 min-h-0">
+                    {filtered.length === 0 ? (
+                        <p className="text-center text-sm text-gray-400 py-6">No members found.</p>
+                    ) : (
+                        filtered.slice(0, 15).map((m) => {
+                            const isBooked    = alreadyBooked.has(m.id);
+                            const isWaitlist  = onWaitlist.has(m.id);
+                            const isSelected  = selectedMember?.id === m.id;
+                            return (
+                                <button
+                                    key={m.id}
+                                    type="button"
+                                    disabled={isBooked || isWaitlist}
+                                    onClick={() => setSelectedMember(isSelected ? null : m)}
+                                    className={[
+                                        'w-full text-left rounded-xl border px-3 py-2 transition-colors',
+                                        isBooked || isWaitlist
+                                            ? 'border-gray-50 bg-gray-50 opacity-50 cursor-not-allowed'
+                                            : isSelected
+                                                ? 'border-orange-400 bg-orange-50'
+                                                : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30',
+                                    ].join(' ')}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-semibold text-gray-900 truncate">{m.name}</p>
+                                            <p className="text-xs text-gray-400 truncate">{m.email}</p>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            {isBooked ? (
+                                                <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">Booked</span>
+                                            ) : isWaitlist ? (
+                                                <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Waitlist</span>
+                                            ) : m.active_sub ? (
+                                                <span className="text-[10px] text-gray-400">
+                                                    {m.active_sub.is_unlimited ? '∞' : `${m.active_sub.credits_remaining}cr`}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] text-red-400">No sub</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </button>
+                            );
+                        })
+                    )}
+                </div>
+
+                <div className="flex gap-2">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
+                    <button
+                        type="button"
+                        disabled={!selectedMember || submitting}
+                        onClick={book}
+                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-60">
+                        {submitting ? 'Booking…' : selectedMember ? `Book ${selectedMember.name}` : 'Select member'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ── Attendee panel ────────────────────────────────────────────────────────────
+
+function AttendeePanel({ gymClass, members, template }) {
+    const [showBookModal, setShowBookModal] = useState(false);
+    const attendees = gymClass.attendees ?? [];
+    const waitlist  = gymClass.waitlist  ?? [];
+
+    return (
+        <>
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                    <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Booked</span>
-                    <span className="text-xs font-bold text-gray-700">{gymClass.attendees?.length ?? 0} / {gymClass.capacity}</span>
+                    <span className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                        Attendance · {attendees.length}/{gymClass.capacity}
+                    </span>
+                    {!gymClass.is_cancelled && (
+                        <button
+                            type="button"
+                            onClick={() => setShowBookModal(true)}
+                            className="text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 hover:bg-orange-100 px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                            + Book Member
+                        </button>
+                    )}
                 </div>
-                {gymClass.attendees?.length > 0 ? (
+                {attendees.length > 0 ? (
                     <ul className="divide-y divide-gray-50">
-                        {gymClass.attendees.map((a) => (
-                            <li key={a.id} className="flex items-center gap-3 px-4 py-2.5">
+                        {attendees.map((a) => (
+                            <li key={a.booking_id} className="flex items-center gap-3 px-4 py-2.5">
                                 <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-600 text-xs font-bold flex items-center justify-center shrink-0">
                                     {a.name[0].toUpperCase()}
                                 </div>
-                                <div className="min-w-0">
+                                <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900 truncate">{a.name}</p>
                                     <p className="text-xs text-gray-400 truncate">{a.email}</p>
+                                </div>
+                                <div className="shrink-0">
+                                    <AttendanceBtn bookingId={a.booking_id} currentStatus={a.booking_status} />
                                 </div>
                             </li>
                         ))}
@@ -877,21 +1060,53 @@ function EditPanel({ gymClass, template }) {
                 ) : (
                     <p className="px-4 py-4 text-xs text-gray-400 text-center">No bookings yet</p>
                 )}
+
+                {/* Waitlist */}
+                {waitlist.length > 0 && (
+                    <>
+                        <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
+                            <span className="text-xs font-bold uppercase tracking-wide text-amber-600">
+                                Waitlist · {waitlist.length}
+                            </span>
+                        </div>
+                        <ul className="divide-y divide-gray-50">
+                            {waitlist.map((a) => (
+                                <li key={a.booking_id} className="flex items-center gap-3 px-4 py-2.5">
+                                    <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                                        {a.queue_position}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-gray-900 truncate">{a.name}</p>
+                                        <p className="text-xs text-gray-400 truncate">{a.email}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </>
+                )}
             </div>
-        </div>
+
+            {showBookModal && (
+                <BookMemberModal
+                    gymClass={gymClass}
+                    members={members}
+                    onClose={() => setShowBookModal(false)}
+                />
+            )}
+        </>
     );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ClassSlot({ instances, selected, template }) {
+export default function ClassSlot({ instances, selected, template, members }) {
     return (
         <AdminLayout title={`${template.name} · ${DAY_NAMES[template.day_of_week]} ${template.start_time}`}>
             <div className="flex gap-4 items-start">
                 <DateList instances={instances} selectedId={selected?.id} template={template} />
 
                 {selected ? (
-                    <EditPanel gymClass={selected} template={template} />
+                    <EditPanel gymClass={selected} template={template} members={members ?? []} />
                 ) : (
                     <div className="flex-1 bg-white rounded-2xl border border-gray-100 flex items-center justify-center py-24 text-gray-400">
                         <p className="text-sm">No instances found for this slot.</p>

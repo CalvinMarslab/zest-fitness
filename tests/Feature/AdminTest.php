@@ -8,7 +8,6 @@ use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
 use App\Models\UserSubscription;
-use App\Models\WorkoutResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -61,19 +60,17 @@ class AdminTest extends TestCase
     public function test_dashboard_shows_correct_stats(): void
     {
         $gymClass = GymClass::factory()->create(['start_time' => Carbon::today()->addHours(2)]);
-        ClassBooking::create(['user_id' => $this->regularUser->id, 'gym_class_id' => $gymClass->id]);
-        WorkoutResult::create([
-            'user_id' => $this->regularUser->id, 'result_date' => Carbon::today(),
-            'exercise' => 'Deadlift', 'value' => '100 kg',
-        ]);
+        ClassBooking::create(['user_id' => $this->regularUser->id, 'gym_class_id' => $gymClass->id, 'status' => 'booked']);
 
         $response = $this->actingAs($this->admin)->get(route('admin.dashboard'));
 
         $response->assertInertia(fn ($page) => $page
-            ->where('stats.total_users', 2) // admin + regular
-            ->where('stats.total_classes', 1)
+            ->where('stats.total_members', 1) // regularUser (admin excluded)
             ->where('stats.bookings_today', 1)
-            ->where('stats.results_today', 1)
+            ->where('stats.today_classes_count', 1)
+            ->has('todayClasses')
+            ->has('expiringSoon')
+            ->has('alerts')
         );
     }
 
