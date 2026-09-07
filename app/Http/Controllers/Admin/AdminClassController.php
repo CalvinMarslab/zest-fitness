@@ -44,11 +44,16 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'coach' => 'required|string|max:255',
-            'coach_id' => 'nullable|exists:users,id',
+            'coach_id' => ['nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->whereIn('role', ['coach', 'admin']))],
             'day_of_week' => 'required|integer|between:0,6',
             'start_time' => 'required|string',
             'capacity' => 'required|integer|min:1|max:200',
         ]);
+
+        if (! empty($data['coach_id'])) {
+            $coachUser = User::find($data['coach_id']);
+            $data['coach'] = $coachUser?->name ?? $data['coach'];
+        }
 
         ClassTemplate::create($data);
 
@@ -60,12 +65,17 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
             'coach' => 'sometimes|string|max:255',
-            'coach_id' => 'sometimes|nullable|exists:users,id',
+            'coach_id' => ['sometimes', 'nullable', Rule::exists('users', 'id')->where(fn ($q) => $q->whereIn('role', ['coach', 'admin']))],
             'day_of_week' => 'sometimes|integer|between:0,6',
             'start_time' => 'sometimes|string',
             'capacity' => 'sometimes|integer|min:1|max:200',
             'is_active' => 'sometimes|boolean',
         ]);
+
+        if (! empty($data['coach_id'])) {
+            $coachUser = User::find($data['coach_id']);
+            $data['coach'] = $coachUser?->name ?? $data['coach'] ?? $template->coach;
+        }
 
         $template->update($data);
 

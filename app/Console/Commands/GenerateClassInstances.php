@@ -43,6 +43,7 @@ class GenerateClassInstances extends Command
                     'template_id' => $tpl->id,
                     'name' => $tpl->name,
                     'coach' => $tpl->coach,
+                    'coach_id' => $tpl->coach_id,
                     'start_time' => $startTime->toDateTimeString(),
                     'capacity' => $tpl->capacity,
                     'exercises' => [],

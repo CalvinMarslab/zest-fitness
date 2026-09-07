@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ClassBooking;
+use App\Models\ClassTemplate;
 use App\Models\GymClass;
 use App\Models\Package;
 use App\Models\User;
@@ -703,6 +704,72 @@ class AdminTest extends TestCase
 
         $response->assertSessionHasErrors('status');
         $this->assertEquals('cancelled', $booking->fresh()->status);
+    }
+
+    // ── ClassTemplate coach_id ────────────────────────────────────────────────
+
+    public function test_class_template_with_coach_id_propagates_to_generated_class(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach', 'name' => 'Template Coach']);
+
+        $template = ClassTemplate::create([
+            'name' => 'Strength',
+            'coach' => 'Template Coach',
+            'coach_id' => $coach->id,
+            'day_of_week' => Carbon::today()->dayOfWeek,
+            'start_time' => '06:00',
+            'capacity' => 10,
+            'is_active' => true,
+        ]);
+
+        \Artisan::call('classes:generate', ['--weeks' => 1]);
+
+        $this->assertDatabaseHas('gym_classes', [
+            'template_id' => $template->id,
+            'coach_id' => $coach->id,
+        ]);
+    }
+
+    public function test_member_role_cannot_be_assigned_as_template_coach(): void
+    {
+        $member = User::factory()->create(['role' => 'member']);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.class-templates.store'), [
+                'name' => 'Yoga',
+                'coach' => 'Member Person',
+                'coach_id' => $member->id,
+                'day_of_week' => 1,
+                'start_time' => '08:00',
+                'capacity' => 10,
+            ]);
+
+        $response->assertSessionHasErrors('coach_id');
+    }
+
+    public function test_coach_assigned_through_template_can_see_generated_class(): void
+    {
+        $coach = User::factory()->create(['role' => 'coach', 'name' => 'Generated Coach']);
+
+        $template = ClassTemplate::create([
+            'name' => 'Mobility',
+            'coach' => 'Generated Coach',
+            'coach_id' => $coach->id,
+            'day_of_week' => Carbon::today()->dayOfWeek,
+            'start_time' => '07:00',
+            'capacity' => 8,
+            'is_active' => true,
+        ]);
+
+        \Artisan::call('classes:generate', ['--weeks' => 1]);
+
+        $response = $this->actingAs($coach)->get(route('coach.classes.index'));
+
+        $response->assertOk();
+        $response->assertInertia(fn ($page) => $page
+            ->component('Coach/Classes')
+            ->has('classes', 1)
+        );
     }
 
     public function test_admin_correction_transition_rejected_phase_1a(): void
