@@ -8,6 +8,7 @@ use App\Models\GymClass;
 use App\Services\BookingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,6 +60,14 @@ class AdminBookingController extends Controller
         // Cannot update attendance for cancelled or waitlisted bookings
         if (in_array($booking->status, ['cancelled', 'late_cancel', 'waitlisted'])) {
             return back()->withErrors(['status' => 'Cannot update attendance for a cancelled or waitlisted booking.']);
+        }
+
+        // No Show cannot be marked before the class has started
+        if ($newStatus === 'no_show') {
+            $class = GymClass::find($booking->gym_class_id);
+            if ($class && Carbon::now()->lt($class->start_time)) {
+                return back()->withErrors(['status' => 'Cannot mark No Show before the class has started.']);
+            }
         }
 
         $validNext = self::VALID_TRANSITIONS[$booking->status] ?? [];

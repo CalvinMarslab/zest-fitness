@@ -86,6 +86,7 @@ Route::middleware(['auth', 'admin'])
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         // Users
+        Route::get('/members/search', [AdminUserController::class, 'searchMembers'])->name('members.search');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
         Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');

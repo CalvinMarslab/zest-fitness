@@ -203,36 +203,10 @@ class AdminClassController extends Controller
             ? $instances->firstWhere('id', $selectedId)
             : $instances->first();
 
-        $members = User::where('is_admin', false)
-            ->where('role', 'member')
-            ->orderBy('name')
-            ->with(['subscriptions' => fn ($q) => $q
-                ->where('status', 'active')
-                ->where('expires_at', '>', Carbon::now())
-                ->with('package:id,name,is_unlimited')
-                ->orderByDesc('expires_at')
-                ->limit(1),
-            ])
-            ->get(['id', 'name', 'email'])
-            ->map(fn ($u) => [
-                'id' => $u->id,
-                'name' => $u->name,
-                'email' => $u->email,
-                'active_sub' => $u->subscriptions->first()
-                    ? [
-                        'package_name' => $u->subscriptions->first()->package->name ?? '—',
-                        'is_unlimited' => (bool) $u->subscriptions->first()->is_unlimited,
-                        'credits_remaining' => $u->subscriptions->first()->credits_remaining,
-                        'expires_at' => $u->subscriptions->first()->expires_at->toIso8601String(),
-                    ]
-                    : null,
-            ]);
-
         return Inertia::render('Admin/ClassSlot', [
             'template' => $template,
             'instances' => $instances->values(),
             'selected' => $selected,
-            'members' => $members,
         ]);
     }
 

@@ -9,6 +9,11 @@ function fmt(isoStr) {
     return new Date(isoStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function fmtShort(isoStr) {
+    if (!isoStr) return '—';
+    return new Date(isoStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
 function fmtTime(isoStr) {
     if (!isoStr) return '—';
     return new Date(isoStr).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -19,28 +24,6 @@ function fmtDT(isoStr) {
     const d = new Date(isoStr);
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
            d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-// ─── Flash ────────────────────────────────────────────────────────────────────
-
-function Flash() {
-    const url = new URL(window.location.href);
-    // Inertia flash is already handled by AdminLayout; expose via usePage if needed
-    return null;
-}
-
-// ─── Section wrapper ─────────────────────────────────────────────────────────
-
-function Card({ title, children, action }) {
-    return (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-5">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-50">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">{title}</h3>
-                {action}
-            </div>
-            <div className="p-5">{children}</div>
-        </div>
-    );
 }
 
 // ─── Assign Package modal ─────────────────────────────────────────────────────
@@ -76,7 +59,7 @@ function AssignPackageModal({ member, packages, onClose }) {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-gray-500 uppercase">Start Date (optional — defaults to today)</label>
+                        <label className="text-xs font-semibold text-gray-500 uppercase">Start Date (optional)</label>
                         <input
                             type="date"
                             className="mt-1 w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
@@ -84,9 +67,7 @@ function AssignPackageModal({ member, packages, onClose }) {
                             onChange={(e) => form.setData('started_at', e.target.value)}
                         />
                     </div>
-                    {form.errors.package_id && (
-                        <p className="text-xs text-red-500">{form.errors.package_id}</p>
-                    )}
+                    {form.errors.package_id && <p className="text-xs text-red-500">{form.errors.package_id}</p>}
                     <div className="flex gap-2 mt-2">
                         <button type="button" onClick={onClose}
                             className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
@@ -119,7 +100,7 @@ function AdjustCreditsModal({ member, onClose }) {
             <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
                 <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
                     <p className="font-bold text-gray-700 mb-2">No Active Credit Subscription</p>
-                    <p className="text-sm text-gray-500 mb-4">Assign a credit-based package first before adjusting credits.</p>
+                    <p className="text-sm text-gray-500 mb-4">Assign a credit-based package first.</p>
                     <button onClick={onClose} className="px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-700">Close</button>
                 </div>
             </div>
@@ -141,7 +122,7 @@ function AdjustCreditsModal({ member, onClose }) {
                             >
                                 {activeSubs.map((s) => (
                                     <option key={s.id} value={s.id}>
-                                        {s.package?.name} — {s.credits_remaining} cr remaining (exp {fmt(s.expires_at)})
+                                        {s.package?.name} — {s.credits_remaining} cr (exp {fmt(s.expires_at)})
                                     </option>
                                 ))}
                             </select>
@@ -206,8 +187,6 @@ function BookForMemberModal({ member, upcomingClasses, onClose }) {
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <h2 className="font-bold text-lg mb-4">Book Class for {member.name}</h2>
-
-                {/* Search */}
                 <input
                     type="text"
                     placeholder="Search by class name or coach…"
@@ -216,17 +195,12 @@ function BookForMemberModal({ member, upcomingClasses, onClose }) {
                     onChange={(e) => { setSearch(e.target.value); setSelectedClass(null); }}
                     autoFocus
                 />
-
-                {/* Class list */}
                 <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 mb-4 min-h-0">
                     {filtered.length === 0 ? (
                         <p className="text-center text-sm text-gray-400 py-8">No upcoming classes found.</p>
                     ) : (
                         filtered.slice(0, 20).map((c) => {
                             const isSelected = selectedClass?.id === c.id;
-                            const dt = new Date(c.start_time);
-                            const dateStr = dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                            const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                             const full = c.spots_left <= 0;
                             return (
                                 <button
@@ -243,24 +217,22 @@ function BookForMemberModal({ member, upcomingClasses, onClose }) {
                                     <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
-                                            <p className="text-xs text-gray-500">{c.coach} · {dateStr} {timeStr}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {c.coach} · {fmtShort(c.start_time)} {fmtTime(c.start_time)}
+                                            </p>
                                         </div>
-                                        <div className="shrink-0 text-right">
-                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                                                full ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50'
-                                            }`}>
-                                                {full ? 'Full' : `${c.spots_left} left`}
-                                            </span>
-                                        </div>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                            full ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50'
+                                        }`}>
+                                            {full ? 'Full' : `${c.spots_left} left`}
+                                        </span>
                                     </div>
                                 </button>
                             );
                         })
                     )}
                 </div>
-
                 {form.errors.gym_class_id && <p className="text-xs text-red-500 mb-2">{form.errors.gym_class_id}</p>}
-
                 <div className="flex gap-2">
                     <button type="button" onClick={onClose}
                         className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
@@ -277,67 +249,145 @@ function BookForMemberModal({ member, upcomingClasses, onClose }) {
     );
 }
 
-// ─── Subscription badge ───────────────────────────────────────────────────────
-
-function SubBadge({ status }) {
-    if (status === 'active')   return <span className="text-[10px] font-bold bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Active</span>;
-    if (status === 'expired')  return <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">Expired</span>;
-    if (status === 'cancelled') return <span className="text-[10px] font-bold bg-red-100 text-red-500 px-1.5 py-0.5 rounded-full">Cancelled</span>;
-    return <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">{status}</span>;
-}
-
 // ─── Booking status badge ─────────────────────────────────────────────────────
 
 function BookingStatusBadge({ status }) {
-    const styles = {
-        booked:      'bg-yellow-100 text-yellow-700',
-        checked_in:  'bg-green-100 text-green-700',
-        waitlisted:  'bg-amber-100 text-amber-700',
-        late_cancel: 'bg-red-100 text-red-600',
-        cancelled:   'bg-gray-100 text-gray-500',
-        no_show:     'bg-red-100 text-red-600',
+    const cfg = {
+        booked:      ['bg-yellow-100 text-yellow-700', 'Booked'],
+        checked_in:  ['bg-green-100 text-green-700', 'Checked In'],
+        waitlisted:  ['bg-amber-100 text-amber-700', 'Waitlisted'],
+        late_cancel: ['bg-red-100 text-red-600', 'Late Cancel'],
+        cancelled:   ['bg-gray-100 text-gray-500', 'Cancelled'],
+        no_show:     ['bg-red-100 text-red-600', 'No Show'],
     };
-    const labels = {
-        booked: 'Booked', checked_in: 'Checked In', waitlisted: 'Waitlisted',
-        late_cancel: 'Late Cancel', cancelled: 'Cancelled', no_show: 'No Show',
-    };
+    const [cls, label] = cfg[status] ?? ['bg-gray-100 text-gray-500', status];
     return (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${styles[status] ?? 'bg-gray-100 text-gray-500'}`}>
-            {labels[status] ?? status}
-        </span>
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>{label}</span>
     );
 }
 
-// ─── Credit transaction type label ────────────────────────────────────────────
+// ─── Entitlement card ─────────────────────────────────────────────────────────
 
-function TxType({ type, amount }) {
-    const labels = {
-        package_assigned: 'Package assigned',
-        booking_deduction: 'Booking deducted',
-        booking_refund: 'Booking refund',
-        class_cancel_refund: 'Class cancelled refund',
-        admin_adjustment: 'Admin adjustment',
-        migration: 'Migration import',
-        other: 'Other',
-    };
-    const positive = amount > 0;
+function EntitlementCard({ sub }) {
+    const isUnlimited = sub.is_unlimited;
+    const hasWeeklyLimit = sub.package?.weekly_booking_limit;
+    const expDays = sub.expires_at
+        ? Math.ceil((new Date(sub.expires_at) - new Date()) / 86400000)
+        : null;
+    const expSoon = expDays !== null && expDays <= 14;
+
     return (
-        <span className={`font-medium ${positive ? 'text-green-700' : 'text-red-600'}`}>
-            {labels[type] ?? type}
-        </span>
+        <div className={`rounded-2xl border p-4 ${
+            isUnlimited
+                ? 'border-purple-100 bg-purple-50'
+                : expSoon
+                    ? 'border-orange-100 bg-orange-50'
+                    : 'border-gray-100 bg-gray-50'
+        }`}>
+            <div className="flex items-start justify-between gap-2 mb-2">
+                <p className="text-sm font-bold text-gray-900">{sub.package?.name ?? '—'}</p>
+                {isUnlimited ? (
+                    <span className="text-[10px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full">Unlimited</span>
+                ) : (
+                    <span className="text-[10px] font-bold text-green-600 bg-green-100 px-1.5 py-0.5 rounded-full">Active</span>
+                )}
+            </div>
+            <div className="flex items-baseline gap-2">
+                {isUnlimited ? (
+                    <span className="text-2xl font-black text-purple-600">∞</span>
+                ) : (
+                    <span className="text-2xl font-black text-gray-900">{sub.credits_remaining}</span>
+                )}
+                {!isUnlimited && (
+                    <span className="text-xs text-gray-400">/ {sub.credits_granted} credits</span>
+                )}
+                {hasWeeklyLimit && (
+                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-full">
+                        {sub.package.weekly_booking_limit}/wk
+                    </span>
+                )}
+            </div>
+            <p className={`text-xs mt-1.5 font-medium ${expSoon ? 'text-orange-600' : 'text-gray-400'}`}>
+                Exp {fmt(sub.expires_at)}
+                {expSoon && expDays > 0 && ` · ${expDays}d left`}
+                {expDays <= 0 && ' · Expires today'}
+            </p>
+        </div>
+    );
+}
+
+// ─── Credit tx row ────────────────────────────────────────────────────────────
+
+function TxRow({ tx }) {
+    const positive = tx.amount > 0;
+    const labels = {
+        package_assigned:    'Package assigned',
+        booking_deduction:   'Class booked',
+        booking_refund:      'Refund',
+        class_cancel_refund: 'Class cancelled',
+        admin_adjustment:    'Admin adjustment',
+        migration:           'Migration import',
+        other:               'Other',
+    };
+    return (
+        <div className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
+                positive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+            }`}>
+                {positive ? '+' : '−'}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900">
+                    {labels[tx.type] ?? tx.type}
+                    {tx.booking?.gym_class?.name && (
+                        <span className="font-normal text-gray-500"> · {tx.booking.gym_class.name}</span>
+                    )}
+                </p>
+                <p className="text-xs text-gray-400">
+                    {fmtDT(tx.created_at)}
+                    {tx.actor?.name && ` · by ${tx.actor.name}`}
+                    {tx.reason && ` · ${tx.reason}`}
+                </p>
+            </div>
+            <div className="text-right shrink-0">
+                <p className={`text-base font-black ${positive ? 'text-green-600' : 'text-red-500'}`}>
+                    {positive ? `+${tx.amount}` : tx.amount}
+                </p>
+                <p className="text-[10px] text-gray-400">bal {tx.balance_after}</p>
+            </div>
+        </div>
     );
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function UserProfile({ member, packages, upcomingClasses, upcomingBookings, recentBookings, creditHistory }) {
-    const [modal, setModal] = useState(null); // 'package' | 'credits' | 'book'
+const BOOKING_TABS = [
+    { key: 'all',        label: 'All' },
+    { key: 'booked',     label: 'Booked' },
+    { key: 'checked_in', label: 'Checked In' },
+    { key: 'cancelled',  label: 'Cancelled' },
+    { key: 'late_cancel', label: 'Late Cancel' },
+    { key: 'no_show',    label: 'No Show' },
+];
 
+export default function UserProfile({ member, packages, upcomingClasses, upcomingBookings, recentBookings, creditHistory }) {
+    const [modal, setModal]  = useState(null);
+    const [histTab, setHistTab] = useState('all');
+    const [showInactiveSubs, setShowInactiveSubs] = useState(false);
+
+    const now = new Date();
     const activeSubs = (member.subscriptions ?? []).filter(
-        (s) => s.status === 'active' && new Date(s.expires_at) > new Date()
+        (s) => s.status === 'active' && new Date(s.expires_at) > now
     );
-    const totalCredits = member.credits ?? 0;
+    const inactiveSubs = (member.subscriptions ?? []).filter(
+        (s) => !(s.status === 'active' && new Date(s.expires_at) > now)
+    );
+
     const isSuspended = member.status === 'suspended';
+
+    const filteredHistory = histTab === 'all'
+        ? recentBookings
+        : recentBookings.filter((b) => b.status === histTab);
 
     function cancelBookingForMember(bookingId) {
         if (!confirm('Cancel this booking and force-refund the credit?')) return;
@@ -355,191 +405,232 @@ export default function UserProfile({ member, packages, upcomingClasses, upcomin
 
     return (
         <AdminLayout title={member.name}>
-            {/* ── Back + heading ── */}
-            <div className="mb-5">
-                <Link href={route('admin.users.index')} className="text-sm text-orange-500 hover:text-orange-700 font-medium mb-3 inline-block">
-                    ← All Members
-                </Link>
+
+            {/* ── Member header ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-5">
                 <div className="flex items-start justify-between gap-3">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-black text-gray-900">{member.name}</h1>
-                            {isSuspended && (
-                                <span className="text-xs font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Suspended</span>
-                            )}
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 text-lg font-black flex items-center justify-center shrink-0">
+                            {member.name?.[0]?.toUpperCase() ?? '?'}
                         </div>
-                        <p className="text-sm text-gray-500 mt-0.5">{member.email}</p>
-                        {member.phone && <p className="text-xs text-gray-400">{member.phone}</p>}
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h1 className="text-xl font-black text-gray-900">{member.name}</h1>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                    isSuspended
+                                        ? 'bg-red-100 text-red-600'
+                                        : 'bg-green-100 text-green-700'
+                                }`}>
+                                    {isSuspended ? 'Suspended' : 'Active'}
+                                </span>
+                            </div>
+                            <p className="text-sm text-gray-500 mt-0.5">{member.email}</p>
+                            {member.phone && <p className="text-xs text-gray-400 mt-0.5">{member.phone}</p>}
+                        </div>
                     </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                        <Link href={route('admin.users.index')} className="text-xs text-gray-400 hover:text-gray-600">
+                            ← Members
+                        </Link>
+                        <button
+                            onClick={toggleSuspend}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
+                                isSuspended
+                                    ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
+                                    : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                            }`}
+                        >
+                            {isSuspended ? 'Reactivate' : 'Suspend'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Quick actions */}
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-50">
                     <button
-                        onClick={toggleSuspend}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
-                            isSuspended
-                                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100'
-                                : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                        }`}
+                        onClick={() => setModal('book')}
+                        className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
                     >
-                        {isSuspended ? 'Reactivate' : 'Suspend'}
+                        + Book Class
+                    </button>
+                    <button
+                        onClick={() => setModal('package')}
+                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                    >
+                        Assign Package
+                    </button>
+                    <button
+                        onClick={() => setModal('credits')}
+                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                    >
+                        Adjust Credits
                     </button>
                 </div>
             </div>
 
-            {/* ── Credit summary ── */}
-            <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="bg-orange-50 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-orange-600">{totalCredits}</p>
-                    <p className="text-xs text-orange-500 font-semibold uppercase">Total Credits</p>
+            {/* ── Active Entitlements ── */}
+            <div className="mb-5">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Active Entitlements</h2>
+                    <span className="text-xs text-gray-400">{activeSubs.length} active</span>
                 </div>
-                <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-gray-800">{activeSubs.length}</p>
-                    <p className="text-xs text-gray-500 font-semibold uppercase">Active Subs</p>
-                </div>
-                <div className="bg-gray-50 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-black text-gray-800">{upcomingBookings.length}</p>
-                    <p className="text-xs text-gray-500 font-semibold uppercase">Upcoming</p>
-                </div>
-            </div>
-
-            {/* ── Admin actions ── */}
-            <div className="flex flex-wrap gap-2 mb-5">
-                <button
-                    onClick={() => setModal('package')}
-                    className="px-4 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
-                >
-                    + Assign Package
-                </button>
-                <button
-                    onClick={() => setModal('credits')}
-                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
-                >
-                    Adjust Credits
-                </button>
-                <button
-                    onClick={() => setModal('book')}
-                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
-                >
-                    Book Class
-                </button>
-            </div>
-
-            {/* ── Active subscriptions ── */}
-            <Card title="Subscriptions">
-                {(member.subscriptions ?? []).length === 0 ? (
-                    <p className="text-sm text-gray-400">No packages assigned yet.</p>
+                {activeSubs.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-100 px-5 py-6 text-center">
+                        <p className="text-sm text-gray-400">No active packages.</p>
+                        <button
+                            onClick={() => setModal('package')}
+                            className="mt-2 text-xs text-orange-500 font-semibold hover:text-orange-700"
+                        >
+                            + Assign Package
+                        </button>
+                    </div>
                 ) : (
-                    <div className="flex flex-col gap-3">
-                        {member.subscriptions.map((s) => (
-                            <div key={s.id} className="flex items-start justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {activeSubs.map((s) => <EntitlementCard key={s.id} sub={s} />)}
+                    </div>
+                )}
+
+                {inactiveSubs.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setShowInactiveSubs((v) => !v)}
+                        className="mt-2 text-xs text-gray-400 hover:text-gray-600 font-medium"
+                    >
+                        {showInactiveSubs ? '▲ Hide' : '▼ Show'} {inactiveSubs.length} inactive package{inactiveSubs.length !== 1 ? 's' : ''}
+                    </button>
+                )}
+
+                {showInactiveSubs && inactiveSubs.length > 0 && (
+                    <div className="mt-2 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                        {inactiveSubs.map((s, i) => (
+                            <div key={s.id} className={`flex items-center justify-between px-4 py-3 ${i > 0 ? 'border-t border-gray-50' : ''}`}>
                                 <div>
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="text-sm font-semibold text-gray-800">{s.package?.name ?? '—'}</p>
-                                        <SubBadge status={s.status} />
-                                    </div>
-                                    {s.is_unlimited ? (
-                                        <p className="text-xs text-gray-500">∞ Unlimited · exp {fmt(s.expires_at)}</p>
-                                    ) : (
-                                        <p className="text-xs text-gray-500">
-                                            {s.credits_remaining} / {s.credits_granted} credits · exp {fmt(s.expires_at)}
-                                        </p>
-                                    )}
-                                    {s.assigned_by && (
-                                        <p className="text-[10px] text-gray-400">Assigned by {s.assigned_by?.name ?? `#${s.assigned_by}`}</p>
-                                    )}
+                                    <p className="text-sm text-gray-600">{s.package?.name ?? '—'}</p>
+                                    <p className="text-xs text-gray-400">
+                                        {s.is_unlimited ? '∞' : `${s.credits_remaining} cr`} · exp {fmt(s.expires_at)}
+                                    </p>
                                 </div>
+                                <span className="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full capitalize">
+                                    {s.status}
+                                </span>
                             </div>
                         ))}
                     </div>
                 )}
-            </Card>
+            </div>
 
-            {/* ── Upcoming bookings ── */}
-            <Card title="Upcoming Bookings">
+            {/* ── Upcoming Bookings ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-5">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-50">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Upcoming Bookings</h2>
+                    <span className="text-xs text-gray-400">{upcomingBookings.length}</span>
+                </div>
                 {upcomingBookings.length === 0 ? (
-                    <p className="text-sm text-gray-400">No upcoming bookings.</p>
+                    <p className="px-5 py-5 text-sm text-gray-400">No upcoming bookings.</p>
                 ) : (
-                    <div className="flex flex-col gap-2">
+                    <ul className="divide-y divide-gray-50">
                         {upcomingBookings.map((b) => (
-                            <div key={b.id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="text-sm font-semibold text-gray-800">{b.gym_class?.name ?? '—'}</p>
+                            <li key={b.id} className="flex items-center gap-3 px-4 py-3">
+                                <div className="shrink-0 text-center w-10">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase leading-none">
+                                        {b.gym_class ? new Date(b.gym_class.start_time).toLocaleDateString('en-US', { month: 'short' }) : ''}
+                                    </p>
+                                    <p className="text-lg font-black text-gray-900 leading-none">
+                                        {b.gym_class ? new Date(b.gym_class.start_time).getDate() : '—'}
+                                    </p>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{b.gym_class?.name ?? '—'}</p>
                                         <BookingStatusBadge status={b.status} />
                                     </div>
-                                    <p className="text-xs text-gray-500">
-                                        {b.gym_class ? `${fmt(b.gym_class.start_time)} ${fmtTime(b.gym_class.start_time)}` : '—'}
+                                    <p className="text-xs text-gray-400">
+                                        {b.gym_class ? fmtTime(b.gym_class.start_time) : ''}
                                         {b.gym_class?.coach && ` · ${b.gym_class.coach}`}
                                     </p>
                                 </div>
                                 <button
                                     onClick={() => cancelBookingForMember(b.id)}
-                                    className="text-xs text-red-400 hover:text-red-600 font-medium whitespace-nowrap"
+                                    className="text-xs text-red-400 hover:text-red-600 font-medium whitespace-nowrap shrink-0"
                                 >
                                     Cancel
                                 </button>
-                            </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
-            </Card>
+            </div>
 
-            {/* ── Recent booking history ── */}
-            <Card title="Recent Booking History (30 days)">
-                {recentBookings.length === 0 ? (
-                    <p className="text-sm text-gray-400">No recent bookings.</p>
+            {/* ── Booking History ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-5">
+                <div className="px-5 py-3 border-b border-gray-50">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Booking History</h2>
+                    <div className="flex gap-1.5 flex-wrap">
+                        {BOOKING_TABS.map((tab) => {
+                            const count = tab.key === 'all'
+                                ? recentBookings.length
+                                : recentBookings.filter((b) => b.status === tab.key).length;
+                            return (
+                                <button
+                                    key={tab.key}
+                                    type="button"
+                                    onClick={() => setHistTab(tab.key)}
+                                    className={[
+                                        'px-2.5 py-1 rounded-full text-xs font-semibold transition-colors',
+                                        histTab === tab.key
+                                            ? 'bg-gray-900 text-white'
+                                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200',
+                                    ].join(' ')}
+                                >
+                                    {tab.label} {count > 0 && <span className="opacity-70">({count})</span>}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+                {filteredHistory.length === 0 ? (
+                    <p className="px-5 py-5 text-sm text-gray-400">No bookings in this category.</p>
                 ) : (
-                    <div className="flex flex-col gap-2">
-                        {recentBookings.map((b) => (
-                            <div key={b.id} className="flex items-center justify-between gap-2 py-2 border-b border-gray-50 last:border-0">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="text-sm font-semibold text-gray-800">{b.gym_class?.name ?? '—'}</p>
-                                        <BookingStatusBadge status={b.status} />
-                                    </div>
-                                    <p className="text-xs text-gray-500">
-                                        {b.gym_class ? `${fmt(b.gym_class.start_time)} ${fmtTime(b.gym_class.start_time)}` : '—'}
+                    <ul className="divide-y divide-gray-50">
+                        {filteredHistory.map((b) => (
+                            <li key={b.id} className="flex items-center gap-3 px-4 py-3">
+                                <div className="shrink-0 text-center w-10">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase leading-none">
+                                        {b.gym_class ? new Date(b.gym_class.start_time).toLocaleDateString('en-US', { month: 'short' }) : ''}
+                                    </p>
+                                    <p className="text-lg font-black text-gray-900 leading-none">
+                                        {b.gym_class ? new Date(b.gym_class.start_time).getDate() : '—'}
                                     </p>
                                 </div>
-                            </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-sm font-semibold text-gray-900 truncate">{b.gym_class?.name ?? '—'}</p>
+                                        <BookingStatusBadge status={b.status} />
+                                    </div>
+                                    <p className="text-xs text-gray-400">
+                                        {b.gym_class ? fmtDT(b.gym_class.start_time) : ''}
+                                    </p>
+                                </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
-            </Card>
+            </div>
 
-            {/* ── Credit history ── */}
-            <Card title="Credit History">
+            {/* ── Credit History ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-5">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-gray-50">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Credit History</h2>
+                    <span className="text-xs text-gray-400">{creditHistory.length} transactions</span>
+                </div>
                 {creditHistory.length === 0 ? (
-                    <p className="text-sm text-gray-400">No credit transactions yet.</p>
+                    <p className="px-5 py-5 text-sm text-gray-400">No credit transactions yet.</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[500px]">
-                            <thead>
-                                <tr className="text-left text-xs text-gray-400 uppercase">
-                                    <th className="pb-2 pr-3">Date</th>
-                                    <th className="pb-2 pr-3">Type</th>
-                                    <th className="pb-2 pr-3 text-right">Amount</th>
-                                    <th className="pb-2 pr-3 text-right">Balance</th>
-                                    <th className="pb-2">Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-50">
-                                {creditHistory.map((tx) => (
-                                    <tr key={tx.id}>
-                                        <td className="py-2 pr-3 text-xs text-gray-400 whitespace-nowrap">{fmtDT(tx.created_at)}</td>
-                                        <td className="py-2 pr-3"><TxType type={tx.type} amount={tx.amount} /></td>
-                                        <td className={`py-2 pr-3 text-right font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                            {tx.amount > 0 ? `+${tx.amount}` : tx.amount}
-                                        </td>
-                                        <td className="py-2 pr-3 text-right text-gray-600">{tx.balance_after}</td>
-                                        <td className="py-2 text-xs text-gray-400">
-                                            {tx.reason ?? (tx.actor ? `by ${tx.actor.name}` : '')}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <div className="px-4">
+                        {creditHistory.map((tx) => <TxRow key={tx.id} tx={tx} />)}
                     </div>
                 )}
-            </Card>
+            </div>
 
             {/* ── Modals ── */}
             {modal === 'package' && (

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { router, useForm } from '@inertiajs/react';
+import axios from 'axios';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { parseLocalDT, toLocalInputDT } from '@/utils/date';
 
@@ -716,7 +717,7 @@ function ExerciseBuilder({ exercises, onChange, showModal, setShowModal }) {
 
 // ── Edit panel ────────────────────────────────────────────────────────────────
 
-function EditPanel({ gymClass, template, members }) {
+function EditPanel({ gymClass, template }) {
     const [showExerciseModal, setShowExerciseModal] = useState(false);
     const form = useForm({
         name:         gymClass.name,
@@ -855,15 +856,16 @@ function EditPanel({ gymClass, template, members }) {
                 </form>
             </div>
 
-            <AttendeePanel gymClass={gymClass} members={members ?? []} template={template} />
+            <AttendeePanel gymClass={gymClass} template={template} />
         </div>
     );
 }
 
 // ── Attendance action buttons ─────────────────────────────────────────────────
 
-function AttendanceBtn({ bookingId, currentStatus }) {
+function AttendanceBtn({ bookingId, currentStatus, classStartTime }) {
     const [busy, setBusy] = useState(false);
+    const classStarted = classStartTime ? new Date() >= new Date(classStartTime) : true;
 
     function mark(status) {
         if (busy) return;
@@ -899,33 +901,62 @@ function AttendanceBtn({ bookingId, currentStatus }) {
             >
                 Check In
             </button>
-            <button
-                type="button"
-                onClick={() => mark('no_show')}
-                disabled={busy}
-                className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
-            >
-                No Show
-            </button>
+            {classStarted && (
+                <button
+                    type="button"
+                    onClick={() => mark('no_show')}
+                    disabled={busy}
+                    className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
+                >
+                    No Show
+                </button>
+            )}
         </div>
     );
 }
 
-// ── Book Member modal (class-slot context) ────────────────────────────────────
+// ── Sub summary chip ──────────────────────────────────────────────────────────
 
-function BookMemberModal({ gymClass, members, onClose }) {
-    const [search, setSearch] = useState('');
+function SubChip({ sub }) {
+    if (sub.is_unlimited) {
+        return <span className="text-[10px] text-purple-600 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded-full">∞ {sub.package_name}</span>;
+    }
+    if (sub.weekly_limit) {
+        return <span className="text-[10px] text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded-full">{sub.credits_remaining}cr · {sub.weekly_limit}/wk</span>;
+    }
+    return <span className="text-[10px] text-gray-500 bg-gray-50 border border-gray-100 px-1.5 py-0.5 rounded-full">{sub.credits_remaining}cr</span>;
+}
+
+// ── Book Member modal (class-slot context, AJAX search) ───────────────────────
+
+function BookMemberModal({ gymClass, onClose }) {
+    const [search, setSearch]             = useState('');
+    const [results, setResults]           = useState([]);
+    const [loading, setLoading]           = useState(false);
     const [selectedMember, setSelectedMember] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting]     = useState(false);
+    const debounceRef                     = useRef(null);
 
     const alreadyBooked = new Set((gymClass.attendees ?? []).map((a) => a.id));
-    const onWaitlist    = new Set((gymClass.waitlist ?? []).map((a) => a.id));
+    const onWaitlist    = new Set((gymClass.waitlist  ?? []).map((a) => a.id));
 
-    const filtered = (members ?? []).filter((m) => {
-        if (!search.trim()) return true;
-        const q = search.toLowerCase();
-        return m.name.toLowerCase().includes(q) || m.email.toLowerCase().includes(q);
-    });
+    function handleSearch(value) {
+        setSearch(value);
+        setSelectedMember(null);
+        clearTimeout(debounceRef.current);
+        if (value.trim().length < 2) { setResults([]); return; }
+        debounceRef.current = setTimeout(async () => {
+            setLoading(true);
+            try {
+                const res = await axios.get(route('admin.members.search'), { params: { q: value.trim() } });
+                setResults(res.data.members ?? []);
+            } catch {
+                setResults([]);
+            } finally {
+                setLoading(false);
+            }
+        }, 300);
+    }
 
     function book() {
         if (!selectedMember || submitting) return;
@@ -940,55 +971,57 @@ function BookMemberModal({ gymClass, members, onClose }) {
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
             <div className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <h2 className="font-bold text-base mb-3">Book Member into Class</h2>
+                <h2 className="font-bold text-base mb-1">Book Member into Class</h2>
                 <p className="text-xs text-gray-400 mb-3">{gymClass.name} · {formatDate(gymClass.start_time)}</p>
 
                 <input
                     type="text"
-                    placeholder="Search member name or email…"
+                    placeholder="Type name, email, or phone…"
                     className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 mb-3"
                     value={search}
-                    onChange={(e) => { setSearch(e.target.value); setSelectedMember(null); }}
+                    onChange={(e) => handleSearch(e.target.value)}
                     autoFocus
                 />
 
-                <div className="flex-1 overflow-y-auto flex flex-col gap-1 mb-4 min-h-0">
-                    {filtered.length === 0 ? (
-                        <p className="text-center text-sm text-gray-400 py-6">No members found.</p>
+                <div className="flex-1 overflow-y-auto flex flex-col gap-1 mb-4 min-h-[80px]">
+                    {search.trim().length < 2 ? (
+                        <p className="text-center text-xs text-gray-300 py-6">Type at least 2 characters to search</p>
+                    ) : loading ? (
+                        <p className="text-center text-xs text-gray-400 py-6">Searching…</p>
+                    ) : results.length === 0 ? (
+                        <p className="text-center text-xs text-gray-400 py-6">No members found for "{search}"</p>
                     ) : (
-                        filtered.slice(0, 15).map((m) => {
-                            const isBooked    = alreadyBooked.has(m.id);
-                            const isWaitlist  = onWaitlist.has(m.id);
-                            const isSelected  = selectedMember?.id === m.id;
+                        results.map((m) => {
+                            const isBooked   = alreadyBooked.has(m.id);
+                            const isWait     = onWaitlist.has(m.id);
+                            const isSelected = selectedMember?.id === m.id;
                             return (
                                 <button
                                     key={m.id}
                                     type="button"
-                                    disabled={isBooked || isWaitlist}
+                                    disabled={isBooked || isWait}
                                     onClick={() => setSelectedMember(isSelected ? null : m)}
                                     className={[
-                                        'w-full text-left rounded-xl border px-3 py-2 transition-colors',
-                                        isBooked || isWaitlist
+                                        'w-full text-left rounded-xl border px-3 py-2.5 transition-colors',
+                                        isBooked || isWait
                                             ? 'border-gray-50 bg-gray-50 opacity-50 cursor-not-allowed'
                                             : isSelected
                                                 ? 'border-orange-400 bg-orange-50'
                                                 : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30',
                                     ].join(' ')}
                                 >
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-start justify-between gap-2">
                                         <div className="min-w-0">
                                             <p className="text-sm font-semibold text-gray-900 truncate">{m.name}</p>
                                             <p className="text-xs text-gray-400 truncate">{m.email}</p>
                                         </div>
-                                        <div className="shrink-0 text-right">
+                                        <div className="shrink-0 flex flex-col items-end gap-1">
                                             {isBooked ? (
                                                 <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">Booked</span>
-                                            ) : isWaitlist ? (
+                                            ) : isWait ? (
                                                 <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Waitlist</span>
-                                            ) : m.active_sub ? (
-                                                <span className="text-[10px] text-gray-400">
-                                                    {m.active_sub.is_unlimited ? '∞' : `${m.active_sub.credits_remaining}cr`}
-                                                </span>
+                                            ) : m.active_subs?.length > 0 ? (
+                                                m.active_subs.map((s, i) => <SubChip key={i} sub={s} />)
                                             ) : (
                                                 <span className="text-[10px] text-red-400">No sub</span>
                                             )}
@@ -1018,7 +1051,7 @@ function BookMemberModal({ gymClass, members, onClose }) {
 
 // ── Attendee panel ────────────────────────────────────────────────────────────
 
-function AttendeePanel({ gymClass, members, template }) {
+function AttendeePanel({ gymClass, template }) {
     const [showBookModal, setShowBookModal] = useState(false);
     const attendees = gymClass.attendees ?? [];
     const waitlist  = gymClass.waitlist  ?? [];
@@ -1052,7 +1085,7 @@ function AttendeePanel({ gymClass, members, template }) {
                                     <p className="text-xs text-gray-400 truncate">{a.email}</p>
                                 </div>
                                 <div className="shrink-0">
-                                    <AttendanceBtn bookingId={a.booking_id} currentStatus={a.booking_status} />
+                                    <AttendanceBtn bookingId={a.booking_id} currentStatus={a.booking_status} classStartTime={gymClass.start_time} />
                                 </div>
                             </li>
                         ))}
@@ -1089,7 +1122,6 @@ function AttendeePanel({ gymClass, members, template }) {
             {showBookModal && (
                 <BookMemberModal
                     gymClass={gymClass}
-                    members={members}
                     onClose={() => setShowBookModal(false)}
                 />
             )}
@@ -1099,14 +1131,14 @@ function AttendeePanel({ gymClass, members, template }) {
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
-export default function ClassSlot({ instances, selected, template, members }) {
+export default function ClassSlot({ instances, selected, template }) {
     return (
         <AdminLayout title={`${template.name} · ${DAY_NAMES[template.day_of_week]} ${template.start_time}`}>
             <div className="flex gap-4 items-start">
                 <DateList instances={instances} selectedId={selected?.id} template={template} />
 
                 {selected ? (
-                    <EditPanel gymClass={selected} template={template} members={members ?? []} />
+                    <EditPanel gymClass={selected} template={template} />
                 ) : (
                     <div className="flex-1 bg-white rounded-2xl border border-gray-100 flex items-center justify-center py-24 text-gray-400">
                         <p className="text-sm">No instances found for this slot.</p>

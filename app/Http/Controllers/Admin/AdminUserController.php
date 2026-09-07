@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\UserSubscription;
 use App\Services\BookingService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -130,6 +131,46 @@ class AdminUserController extends Controller
                 'start_time' => $booking->gymClass->start_time->toIso8601String(),
             ] : null,
         ];
+    }
+
+    public function searchMembers(Request $request): JsonResponse
+    {
+        $q = trim($request->string('q'));
+
+        if (mb_strlen($q) < 2) {
+            return response()->json(['members' => []]);
+        }
+
+        $members = User::where('is_admin', false)
+            ->where('role', 'member')
+            ->where(fn ($query) => $query
+                ->where('name', 'like', "%{$q}%")
+                ->orWhere('email', 'like', "%{$q}%")
+                ->orWhere('phone', 'like', "%{$q}%")
+            )
+            ->orderBy('name')
+            ->limit(20)
+            ->with(['subscriptions' => fn ($sq) => $sq
+                ->where('status', 'active')
+                ->where('expires_at', '>', now())
+                ->with('package:id,name,is_unlimited,weekly_booking_limit')
+                ->orderByDesc('expires_at'),
+            ])
+            ->get(['id', 'name', 'email', 'phone'])
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'active_subs' => $u->subscriptions->map(fn ($s) => [
+                    'package_name' => $s->package->name ?? '—',
+                    'is_unlimited' => (bool) $s->is_unlimited,
+                    'credits_remaining' => $s->credits_remaining,
+                    'expires_at' => $s->expires_at->toIso8601String(),
+                    'weekly_limit' => $s->package->weekly_booking_limit ?? null,
+                ])->values(),
+            ]);
+
+        return response()->json(['members' => $members]);
     }
 
     public function update(Request $request, User $user): RedirectResponse

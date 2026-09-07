@@ -785,4 +785,108 @@ class AdminTest extends TestCase
         $response->assertSessionHasErrors('status');
         $this->assertEquals('checked_in', $booking->fresh()->status);
     }
+
+    // ── Round 1.1: No Show before class start is rejected ─────────────────────
+
+    public function test_no_show_before_class_starts_is_rejected(): void
+    {
+        $gymClass = GymClass::factory()->create([
+            'start_time' => Carbon::now()->addHour(), // class hasn't started
+        ]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'no_show']);
+
+        $response->assertSessionHasErrors('status');
+        $this->assertEquals('booked', $booking->fresh()->status);
+    }
+
+    public function test_no_show_after_class_starts_is_allowed(): void
+    {
+        $gymClass = GymClass::factory()->create([
+            'start_time' => Carbon::now()->subMinute(), // class already started
+        ]);
+        $booking = ClassBooking::create([
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->patch(route('admin.bookings.attendance', $booking), ['status' => 'no_show']);
+
+        $response->assertRedirect();
+        $this->assertEquals('no_show', $booking->fresh()->status);
+    }
+
+    // ── Round 1.1: Member search returns multiple active subscriptions ─────────
+
+    public function test_member_search_returns_all_active_subscriptions(): void
+    {
+        $member = User::factory()->create([
+            'name' => 'SearchableMember',
+            'email' => 'searchable@example.com',
+            'is_admin' => false,
+            'role' => 'member',
+        ]);
+
+        $pkg1 = Package::factory()->create(['name' => 'Package One', 'credits' => 10, 'is_unlimited' => false]);
+        $pkg2 = Package::factory()->create(['name' => 'Package Two', 'credits' => 0, 'is_unlimited' => true]);
+
+        UserSubscription::create([
+            'user_id' => $member->id,
+            'package_id' => $pkg1->id,
+            'credits_granted' => 10,
+            'credits_remaining' => 7,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+
+        UserSubscription::create([
+            'user_id' => $member->id,
+            'package_id' => $pkg2->id,
+            'credits_granted' => 0,
+            'credits_remaining' => 0,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(60),
+            'status' => 'active',
+            'is_unlimited' => true,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('admin.members.search', ['q' => 'Searchable']));
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'members');
+
+        $memberData = $response->json('members.0');
+        $this->assertEquals($member->id, $memberData['id']);
+        $this->assertCount(2, $memberData['active_subs']);
+
+        $subNames = collect($memberData['active_subs'])->pluck('package_name')->all();
+        $this->assertContains('Package One', $subNames);
+        $this->assertContains('Package Two', $subNames);
+
+        $unlimitedSub = collect($memberData['active_subs'])->firstWhere('package_name', 'Package Two');
+        $this->assertTrue($unlimitedSub['is_unlimited']);
+
+        $finiteSub = collect($memberData['active_subs'])->firstWhere('package_name', 'Package One');
+        $this->assertEquals(7, $finiteSub['credits_remaining']);
+    }
+
+    public function test_member_search_requires_minimum_two_chars(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('admin.members.search', ['q' => 'a']));
+
+        $response->assertOk();
+        $response->assertJson(['members' => []]);
+    }
 }
