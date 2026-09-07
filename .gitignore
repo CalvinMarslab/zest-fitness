@@ -25,3 +25,15 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# VibeFam migration working files — NEVER commit member data or credentials
+/migration-data/
+*.vibefam.csv
+*.members.csv
+*.memberships.csv
+vibefam-export*.csv
+vibefam-export*.xlsx
+vibefam_*.json
+vibefam-*.json
+package-map*.json
+dry-run-report*.txt

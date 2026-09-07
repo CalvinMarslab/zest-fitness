@@ -25,6 +25,8 @@ class PackageSeeder extends Seeder
                 'name' => 'Limited 1-Month',
                 'description' => 'Great for those starting out. 2 classes per week, no lock-in.',
                 'credits' => 8,
+                'is_unlimited' => false,
+                'weekly_booking_limit' => 2,
                 'period_days' => 30,
                 'price' => 200,
                 'badge' => 'Limited',
@@ -35,7 +37,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'HYROX 1-Month',
                 'description' => 'Unlimited HYROX classes for 1 month. No lock-in.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 30,
                 'price' => 280,
                 'badge' => 'HYROX Only',
@@ -46,7 +49,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'HYROX 3-Month',
                 'description' => 'Unlimited HYROX classes for 3 months. RM250/month.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 90,
                 'price' => 750,
                 'badge' => 'HYROX Only',
@@ -57,7 +61,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'HYROX 6-Month',
                 'description' => 'Unlimited HYROX classes for 6 months. RM220/month.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 180,
                 'price' => 1320,
                 'badge' => 'Best Value',
@@ -68,7 +73,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'Full Unlimited 1-Month',
                 'description' => 'Access to all classes for 1 month. No lock-in.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 30,
                 'price' => 300,
                 'badge' => 'All Classes',
@@ -79,7 +85,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'Full Unlimited 6-Month',
                 'description' => 'Access to all classes for 6 months. RM250/month.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 180,
                 'price' => 1500,
                 'badge' => 'Popular',
@@ -90,7 +97,8 @@ class PackageSeeder extends Seeder
             [
                 'name' => 'Full Unlimited 12-Month',
                 'description' => 'Access to all classes for 12 months. RM235/month.',
-                'credits' => 999,
+                'credits' => 0,
+                'is_unlimited' => true,
                 'period_days' => 365,
                 'price' => 2820,
                 'badge' => 'Best Value',
