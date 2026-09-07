@@ -67,11 +67,13 @@ class PackageController extends Controller
 
         $now = Carbon::now();
 
+        $granted = $package->is_unlimited ? 0 : $package->credits;
+
         $sub = UserSubscription::create([
             'user_id' => $user->id,
             'package_id' => $package->id,
-            'credits_granted' => $package->credits,
-            'credits_remaining' => $package->credits,
+            'credits_granted' => $granted,
+            'credits_remaining' => $granted,
             'started_at' => $now,
             'expires_at' => $now->copy()->addDays($package->period_days),
             'status' => 'active',
@@ -86,7 +88,7 @@ class PackageController extends Controller
                 'user_id' => $user->id,
                 'user_subscription_id' => $sub->id,
                 'type' => 'package_assigned',
-                'amount' => $package->credits,
+                'amount' => $granted,
                 'balance_after' => $user->credits,
                 'reason' => "Trial package activated: {$package->name}",
             ]);

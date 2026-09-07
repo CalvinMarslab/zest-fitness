@@ -152,11 +152,14 @@ class AdminUserController extends Controller
         $expiresAt = $startedAt->copy()->addDays($package->period_days);
 
         DB::transaction(function () use ($user, $package, $startedAt, $expiresAt) {
+            // Unlimited packages always get credits=0; finite packages copy package credits.
+            $granted = $package->is_unlimited ? 0 : $package->credits;
+
             $sub = UserSubscription::create([
                 'user_id' => $user->id,
                 'package_id' => $package->id,
-                'credits_granted' => $package->credits,
-                'credits_remaining' => $package->credits,
+                'credits_granted' => $granted,
+                'credits_remaining' => $granted,
                 'started_at' => $startedAt,
                 'expires_at' => $expiresAt,
                 'status' => 'active',
@@ -172,7 +175,7 @@ class AdminUserController extends Controller
                     'user_id' => $user->id,
                     'user_subscription_id' => $sub->id,
                     'type' => 'package_assigned',
-                    'amount' => $package->credits,
+                    'amount' => $granted,
                     'balance_after' => $user->credits,
                     'reason' => "Package assigned: {$package->name}",
                     'actor_user_id' => auth()->id(),

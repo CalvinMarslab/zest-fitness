@@ -35,7 +35,7 @@ class AdminPackageController extends Controller
             'sort_order' => 'integer|min:0',
         ]);
 
-        Package::create($data);
+        Package::create($this->normalizePackageCredits($data));
 
         return back();
     }
@@ -55,7 +55,7 @@ class AdminPackageController extends Controller
             'sort_order' => 'integer|min:0',
         ]);
 
-        $package->update($data);
+        $package->update($this->normalizePackageCredits($data, $package));
 
         return back();
     }
@@ -65,5 +65,28 @@ class AdminPackageController extends Controller
         $package->delete();
 
         return back();
+    }
+
+    /**
+     * Enforce canonical unlimited representation server-side:
+     * is_unlimited=true → credits forced to 0 (never 999 or any other value).
+     * is_unlimited=false → credits must be >= 1 (finite packages need at least one credit).
+     *
+     * The $existing package is used to resolve the is_unlimited state when a
+     * partial update does not include the is_unlimited field.
+     */
+    private function normalizePackageCredits(array $data, ?Package $existing = null): array
+    {
+        $isUnlimited = array_key_exists('is_unlimited', $data)
+            ? (bool) $data['is_unlimited']
+            : (bool) ($existing?->is_unlimited ?? false);
+
+        if ($isUnlimited) {
+            $data['credits'] = 0;
+        } elseif (array_key_exists('credits', $data) && (int) $data['credits'] < 1) {
+            $data['credits'] = 1;
+        }
+
+        return $data;
     }
 }

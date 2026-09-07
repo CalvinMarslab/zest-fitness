@@ -12,10 +12,8 @@ const PERIOD_OPTIONS = [
     { label: '12 Months',      days: 365 },
 ];
 
-const UNLIMITED = 999;
-
 function PackageForm({ initial = {}, onSubmit, onCancel }) {
-    const isUnlimitedInit = !!(initial.is_unlimited) || (initial.credits ?? 10) >= UNLIMITED;
+    const isUnlimitedInit = !!(initial.is_unlimited);
     const [unlimited, setUnlimited] = useState(isUnlimitedInit);
     const hasWeeklyLimitInit = initial.weekly_booking_limit != null;
     const [hasWeeklyLimit, setHasWeeklyLimit] = useState(hasWeeklyLimitInit);
@@ -23,7 +21,7 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
     const form = useForm({
         name:                 initial.name                 ?? '',
         description:          initial.description          ?? '',
-        credits:              isUnlimitedInit ? UNLIMITED : (initial.credits ?? 10),
+        credits:              isUnlimitedInit ? 0 : (initial.credits ?? 10),
         period_days:          initial.period_days          ?? 30,
         price:                initial.price                ?? '',
         badge:                initial.badge                ?? '',
@@ -35,7 +33,7 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
 
     function toggleUnlimited(checked) {
         setUnlimited(checked);
-        form.setData('credits', checked ? UNLIMITED : 10);
+        form.setData('credits', checked ? 0 : (form.data.credits > 0 ? form.data.credits : 10));
         form.setData('is_unlimited', checked);
     }
 
@@ -74,10 +72,16 @@ function PackageForm({ initial = {}, onSubmit, onCancel }) {
             <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase">Credits</label>
                 <div className="flex items-center gap-2 mt-1">
-                    <input type="number" min="1" disabled={unlimited}
-                        className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 disabled:bg-gray-50 disabled:text-gray-400"
-                        value={unlimited ? '∞' : form.data.credits}
-                        onChange={(e) => form.setData('credits', parseInt(e.target.value))} />
+                    {unlimited ? (
+                        <input type="text" disabled
+                            className="w-full border rounded-xl px-3 py-2 text-sm bg-gray-50 text-gray-400"
+                            value="∞" readOnly />
+                    ) : (
+                        <input type="number" min="1"
+                            className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                            value={form.data.credits}
+                            onChange={(e) => form.setData('credits', parseInt(e.target.value))} />
+                    )}
                 </div>
                 <label className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5 cursor-pointer">
                     <input type="checkbox" checked={unlimited} onChange={(e) => toggleUnlimited(e.target.checked)}
@@ -248,7 +252,7 @@ export default function Packages({ packages }) {
 
                         <div className="flex items-center gap-2 mb-3 flex-wrap">
                             <span className="bg-orange-50 text-orange-600 text-sm font-bold px-3 py-1 rounded-full">
-                                {pkg.is_unlimited || pkg.credits >= UNLIMITED ? '∞ Unlimited' : `${pkg.credits} credits`}
+                                {pkg.is_unlimited ? '∞ Unlimited' : `${pkg.credits} credits`}
                             </span>
                             {pkg.weekly_booking_limit != null && (
                                 <span className="bg-blue-50 text-blue-600 text-xs font-semibold px-2 py-1 rounded-full">
