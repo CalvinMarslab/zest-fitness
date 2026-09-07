@@ -88,9 +88,10 @@ class AdminUserController extends Controller
         $upcomingClasses = GymClass::where('start_time', '>=', $now)
             ->where('is_cancelled', false)
             ->orderBy('start_time')
-            ->limit(30)
+            ->limit(50)
             ->withCount([
                 'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
+                'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
             ])
             ->get(['id', 'name', 'coach', 'start_time', 'capacity'])
             ->map(fn ($c) => [
@@ -101,6 +102,7 @@ class AdminUserController extends Controller
                 'capacity' => $c->capacity,
                 'confirmed_count' => $c->confirmed_count,
                 'spots_left' => max(0, $c->capacity - $c->confirmed_count),
+                'waitlist_count' => $c->waitlist_count,
             ]);
 
         return Inertia::render('Admin/UserProfile', [
@@ -290,12 +292,18 @@ class AdminUserController extends Controller
         $class = GymClass::findOrFail($data['gym_class_id']);
         $result = $this->bookingService->book($user, $class);
 
-        return back()->with('success', match ($result['status']) {
-            'already_booked' => "{$user->name} is already booked into this class.",
-            'waitlisted' => "Added {$user->name} to the waitlist (position #{$result['position']}).",
-            'booked' => "Booked {$user->name} into the class.",
-            default => "Booking result: {$result['status']}.",
-        });
+        return match ($result['status']) {
+            'booked' => back()->with('success', "Booked {$user->name} into {$class->name}."),
+            'waitlisted' => back()->with('success', "Added {$user->name} to the waitlist (position #{$result['position']})."),
+            'already_booked' => back()->withErrors(['booking' => "{$user->name} is already booked into this class."]),
+            'no_subscription' => back()->withErrors(['booking' => 'Member has no active package.']),
+            'no_credits' => back()->withErrors(['booking' => 'Member has no credits remaining.']),
+            'weekly_limit_exceeded' => back()->withErrors(['booking' => 'Member has reached their weekly booking limit.']),
+            'member_suspended' => back()->withErrors(['booking' => 'Member account is suspended.']),
+            'class_cancelled' => back()->withErrors(['booking' => 'This class has been cancelled.']),
+            'booking_not_open' => back()->withErrors(['booking' => 'Booking is not open for this class.']),
+            default => back()->withErrors(['booking' => "Booking not completed ({$result['status']})."]),
+        };
     }
 
     public function cancelBookingForMember(Request $request, User $user, ClassBooking $booking): RedirectResponse

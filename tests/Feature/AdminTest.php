@@ -889,4 +889,89 @@ class AdminTest extends TestCase
         $response->assertOk();
         $response->assertJson(['members' => []]);
     }
+
+    // ── Round 1.2: BookForMember regression — gym_class_id must be submitted ────
+
+    public function test_admin_book_member_creates_booking_and_deducts_credit(): void
+    {
+        $gymClass = GymClass::factory()->create(['capacity' => 10, 'start_time' => now()->addDay()]);
+
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
+        $sub = UserSubscription::create([
+            'user_id' => $this->regularUser->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 5,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+        $this->regularUser->update(['credits' => 5]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), [
+                'gym_class_id' => $gymClass->id,
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+
+        // Booking created with correct member and class
+        $this->assertDatabaseHas('class_bookings', [
+            'user_id' => $this->regularUser->id,
+            'gym_class_id' => $gymClass->id,
+            'status' => 'booked',
+        ]);
+
+        // Credit deducted exactly once (5 → 4)
+        $this->assertEquals(4, $this->regularUser->fresh()->credits);
+        $this->assertEquals(4, $sub->fresh()->credits_remaining);
+    }
+
+    public function test_admin_book_member_missing_gym_class_id_returns_validation_error(): void
+    {
+        // Regression: the bug was gym_class_id never reaching the backend (always '').
+        // Submitting without gym_class_id must always return a validation error, never
+        // silently succeed or produce a different error.
+        $response = $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), []);
+
+        $response->assertSessionHasErrors('gym_class_id');
+        $this->assertDatabaseMissing('class_bookings', ['user_id' => $this->regularUser->id]);
+    }
+
+    public function test_admin_book_member_credit_deducted_only_once_on_double_submit(): void
+    {
+        $gymClass = GymClass::factory()->create(['capacity' => 10, 'start_time' => now()->addDay()]);
+
+        $package = Package::factory()->create(['credits' => 5, 'is_unlimited' => false]);
+        $sub = UserSubscription::create([
+            'user_id' => $this->regularUser->id,
+            'package_id' => $package->id,
+            'credits_granted' => 5,
+            'credits_remaining' => 5,
+            'started_at' => now()->subDay(),
+            'expires_at' => now()->addDays(30),
+            'status' => 'active',
+            'is_unlimited' => false,
+        ]);
+        $this->regularUser->update(['credits' => 5]);
+
+        // First booking succeeds
+        $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), [
+                'gym_class_id' => $gymClass->id,
+            ]);
+
+        // Second identical booking returns 'already_booked' error — no second deduction
+        $this->actingAs($this->admin)
+            ->post(route('admin.users.bookings.store', $this->regularUser), [
+                'gym_class_id' => $gymClass->id,
+            ]);
+
+        // Still exactly 4 credits (not 3)
+        $this->assertEquals(4, $this->regularUser->fresh()->credits);
+        $this->assertCount(1, ClassBooking::where('user_id', $this->regularUser->id)->get());
+    }
 }

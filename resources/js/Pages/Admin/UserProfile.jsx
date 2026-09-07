@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, router, Link } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
@@ -165,83 +165,188 @@ function AdjustCreditsModal({ member, onClose }) {
 
 // ─── Book for Member modal ────────────────────────────────────────────────────
 
-function BookForMemberModal({ member, upcomingClasses, onClose }) {
-    const [search, setSearch] = useState('');
-    const [selectedClass, setSelectedClass] = useState(null);
-    const form = useForm({ gym_class_id: '' });
+function capacityLabel(spotsLeft, waitlistCount) {
+    if (spotsLeft > 0) return { text: `${spotsLeft} spot${spotsLeft === 1 ? '' : 's'}`, cls: 'text-green-700 bg-green-50' };
+    if (waitlistCount > 0) return { text: 'Waitlist', cls: 'text-amber-600 bg-amber-50' };
+    return { text: 'Full', cls: 'text-red-500 bg-red-50' };
+}
 
-    function submit(e) {
-        e.preventDefault();
-        if (!selectedClass) return;
-        form.setData('gym_class_id', selectedClass.id);
-        form.post(route('admin.users.bookings.store', member.id), { onSuccess: onClose });
+function dateGroupHeader(isoStr) {
+    const d = new Date(isoStr);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const dayStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    if (d.toDateString() === today.toDateString()) return `TODAY · ${dayStr.toUpperCase()}`;
+    if (d.toDateString() === tomorrow.toDateString()) return `TOMORROW · ${dayStr.toUpperCase()}`;
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+}
+
+function dateKey(isoStr) {
+    return new Date(isoStr).toDateString();
+}
+
+function BookForMemberModal({ member, upcomingClasses, onClose }) {
+    const [search, setSearch]             = useState('');
+    const [selectedClass, setSelectedClass] = useState(null);
+    const [submitting, setSubmitting]     = useState(false);
+    const [bookingError, setBookingError] = useState(null);
+
+    // Group classes by calendar date
+    const groups = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        const filtered = (upcomingClasses ?? []).filter((c) => {
+            if (!q) return true;
+            return c.name.toLowerCase().includes(q) || (c.coach ?? '').toLowerCase().includes(q);
+        });
+
+        const map = new Map();
+        filtered.forEach((c) => {
+            const key = dateKey(c.start_time);
+            if (!map.has(key)) map.set(key, { header: dateGroupHeader(c.start_time), classes: [] });
+            map.get(key).classes.push(c);
+        });
+        return [...map.values()];
+    }, [upcomingClasses, search]);
+
+    function book() {
+        if (!selectedClass || submitting) return;
+        setSubmitting(true);
+        setBookingError(null);
+        // FIX: pass payload directly to router.post — never use form.setData + form.post
+        // because setData triggers async React state; the stale gym_class_id: '' is submitted.
+        router.post(
+            route('admin.users.bookings.store', member.id),
+            { gym_class_id: selectedClass.id },
+            {
+                preserveScroll: true,
+                onSuccess: onClose,
+                onError: (errors) => {
+                    setBookingError(
+                        errors.booking ?? errors.gym_class_id ?? 'Booking failed. Please try again.'
+                    );
+                    setSubmitting(false);
+                },
+                onFinish: () => setSubmitting(false),
+            }
+        );
     }
 
-    const filtered = (upcomingClasses ?? []).filter((c) => {
-        if (!search.trim()) return true;
-        const q = search.toLowerCase();
-        return c.name.toLowerCase().includes(q) || c.coach.toLowerCase().includes(q);
-    });
+    const hasClasses = groups.some((g) => g.classes.length > 0);
 
     return (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <h2 className="font-bold text-lg mb-4">Book Class for {member.name}</h2>
-                <input
-                    type="text"
-                    placeholder="Search by class name or coach…"
-                    className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 mb-3"
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); setSelectedClass(null); }}
-                    autoFocus
-                />
-                <div className="flex-1 overflow-y-auto flex flex-col gap-1.5 mb-4 min-h-0">
-                    {filtered.length === 0 ? (
-                        <p className="text-center text-sm text-gray-400 py-8">No upcoming classes found.</p>
+            <div
+                className="bg-white rounded-2xl w-full max-w-md shadow-2xl flex flex-col"
+                style={{ maxHeight: '85vh' }}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* ── Fixed header ── */}
+                <div className="flex-none px-5 pt-5 pb-3 border-b border-gray-50">
+                    <h2 className="font-bold text-base mb-3">Book Class for {member.name}</h2>
+                    <input
+                        type="text"
+                        placeholder="Search class name or coach…"
+                        className="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                        value={search}
+                        onChange={(e) => { setSearch(e.target.value); setSelectedClass(null); }}
+                        autoFocus
+                    />
+                </div>
+
+                {/* ── Scrollable class list ── */}
+                <div className="flex-1 overflow-y-auto min-h-0">
+                    {!hasClasses ? (
+                        <p className="text-center text-sm text-gray-400 py-8">
+                            {search ? `No classes matching "${search}"` : 'No upcoming classes.'}
+                        </p>
                     ) : (
-                        filtered.slice(0, 20).map((c) => {
-                            const isSelected = selectedClass?.id === c.id;
-                            const full = c.spots_left <= 0;
-                            return (
-                                <button
-                                    key={c.id}
-                                    type="button"
-                                    onClick={() => setSelectedClass(isSelected ? null : c)}
-                                    className={[
-                                        'w-full text-left rounded-xl border px-3 py-2.5 transition-colors',
-                                        isSelected
-                                            ? 'border-orange-400 bg-orange-50'
-                                            : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30',
-                                    ].join(' ')}
-                                >
-                                    <div className="flex items-start justify-between gap-2">
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
-                                            <p className="text-xs text-gray-500">
-                                                {c.coach} · {fmtShort(c.start_time)} {fmtTime(c.start_time)}
-                                            </p>
-                                        </div>
-                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-                                            full ? 'text-red-500 bg-red-50' : 'text-green-600 bg-green-50'
-                                        }`}>
-                                            {full ? 'Full' : `${c.spots_left} left`}
-                                        </span>
-                                    </div>
-                                </button>
-                            );
-                        })
+                        groups.map((group) => (
+                            <div key={group.header}>
+                                <div className="sticky top-0 px-4 py-2 bg-gray-50 border-b border-gray-100">
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                                        {group.header}
+                                    </p>
+                                </div>
+                                {group.classes.map((c) => {
+                                    const isSelected = selectedClass?.id === c.id;
+                                    const cap = capacityLabel(c.spots_left, c.waitlist_count ?? 0);
+                                    const coachDisplay = c.coach || 'Unassigned';
+                                    return (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => { setSelectedClass(isSelected ? null : c); setBookingError(null); }}
+                                            className={[
+                                                'w-full text-left px-4 py-3 border-b border-gray-50 transition-colors',
+                                                isSelected ? 'bg-orange-50' : 'hover:bg-gray-50',
+                                            ].join(' ')}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    {isSelected && (
+                                                        <div className="w-4 h-4 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={`text-sm font-semibold truncate ${isSelected ? 'text-orange-700' : 'text-gray-900'}`}>
+                                                                {c.name}
+                                                            </p>
+                                                        </div>
+                                                        <p className="text-xs text-gray-400">
+                                                            {fmtTime(c.start_time)} · {coachDisplay}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${cap.cls}`}>
+                                                    {cap.text}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ))
                     )}
                 </div>
-                {form.errors.gym_class_id && <p className="text-xs text-red-500 mb-2">{form.errors.gym_class_id}</p>}
-                <div className="flex gap-2">
-                    <button type="button" onClick={onClose}
-                        className="flex-1 py-2 rounded-xl border text-sm text-gray-600">Cancel</button>
+
+                {/* ── Selected confirmation ── */}
+                {selectedClass && (
+                    <div className="flex-none border-t border-orange-100 bg-orange-50 px-5 py-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500 mb-0.5">Selected</p>
+                        <p className="text-sm font-bold text-orange-700">{selectedClass.name}</p>
+                        <p className="text-xs text-orange-500">
+                            {fmtShort(selectedClass.start_time)} · {fmtTime(selectedClass.start_time)}
+                            {selectedClass.coach ? ` · ${selectedClass.coach}` : ''}
+                        </p>
+                    </div>
+                )}
+
+                {/* ── Error ── */}
+                {bookingError && (
+                    <div className="flex-none border-t border-red-100 bg-red-50 px-5 py-2">
+                        <p className="text-xs text-red-600 font-medium">{bookingError}</p>
+                    </div>
+                )}
+
+                {/* ── Fixed footer ── */}
+                <div className="flex-none border-t border-gray-100 px-5 py-4 flex gap-2">
                     <button
                         type="button"
-                        disabled={!selectedClass || form.processing}
-                        onClick={submit}
-                        className="flex-1 py-2 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-60">
-                        {form.processing ? 'Booking…' : selectedClass ? `Book into ${selectedClass.name}` : 'Select a class'}
+                        onClick={onClose}
+                        className="flex-1 py-2.5 rounded-xl border text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="button"
+                        disabled={!selectedClass || submitting}
+                        onClick={book}
+                        className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-60 transition-colors hover:bg-orange-600"
+                    >
+                        {submitting ? 'Booking…' : selectedClass ? `Book into ${selectedClass.name}` : 'Select a class'}
                     </button>
                 </div>
             </div>
