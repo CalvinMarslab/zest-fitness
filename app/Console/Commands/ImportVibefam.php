@@ -88,6 +88,8 @@ class ImportVibefam extends Command
 
     private array $warnings = [];
 
+    private array $blockingErrors = [];
+
     public function handle(): int
     {
         $isDryRun = (bool) $this->option('dry-run');
@@ -138,6 +140,13 @@ class ImportVibefam extends Command
         }
 
         $this->printReport($memberships, $byEmail, $packageMap, $zeroPackageMembers, $duplicates, $membersList);
+
+        if (! empty($this->blockingErrors)) {
+            $this->newLine();
+            $this->error(count($this->blockingErrors).' configuration error(s) must be fixed before import. See report above.');
+
+            return self::FAILURE;
+        }
 
         if ($isDryRun) {
             $this->newLine();
@@ -559,8 +568,6 @@ class ImportVibefam extends Command
         $this->section('LIMITED PLANS  (finite credits + weekly booking restriction)');
         $this->line('  Active  subscriptions : <fg=green>'.count($limitedActive).'</>');
         $this->line('  Expired subscriptions : '.count($limitedExpired));
-        $this->line('  <fg=red;options=bold>GO-LIVE BLOCKER: 2x/week booking cap is NOT enforced in Zest BookingService.</>');
-        $this->line('  <fg=yellow>Implement weekly-cap enforcement before running the live import.</>');
         $this->newLine();
 
         if (! empty($limitedActive)) {
@@ -703,12 +710,113 @@ class ImportVibefam extends Command
             }
         }
 
-        // ── EXISTING ZEST PACKAGE BUG ──────────────────────────────────────────
-        $this->section('BLOCKER: EXISTING ZEST PACKAGES HAVE WRONG is_unlimited FLAG');
-        $this->warn('  Zest packages IDs 2–7 ("HYROX*", "Full Unlimited*") have is_unlimited=false with credits=999.');
-        $this->warn('  They must be set to is_unlimited=true before the live import so bookings');
-        $this->warn('  do NOT deduct credits from unlimited subscribers.');
-        $this->warn('  Fix: update packages table (IDs 2–7) to set is_unlimited=true, credits=0.');
+        // ── PACKAGE CONFIGURATION CHECKS ─────────────────────────────────────
+        $this->printPackageConfigSection($packageMap);
+    }
+
+    private function printPackageConfigSection(array $packageMap): void
+    {
+        $this->section('PACKAGE CONFIGURATION  (is_unlimited and weekly_booking_limit)');
+
+        if (empty($packageMap)) {
+            $this->line('  (No --package-map provided — skipping DB config validation.)');
+
+            return;
+        }
+
+        $unlimitedIds = [];
+        $limitedPlanIds = [];
+
+        foreach (self::VIBEFAM_CANONICAL as $vibefamName => $meta) {
+            $mapEntry = $packageMap[$vibefamName] ?? null;
+            if ($mapEntry === null) {
+                continue;
+            }
+            $pkgId = is_array($mapEntry) ? ($mapEntry['package_id'] ?? null) : $mapEntry;
+            if (! $pkgId) {
+                continue;
+            }
+            $pkgId = (int) $pkgId;
+
+            $isUnlimited = $meta['unlimited'] === true
+                || (is_array($mapEntry) && ($mapEntry['is_unlimited'] ?? false) === true);
+
+            if ($isUnlimited) {
+                $unlimitedIds[$pkgId] = true;
+            } elseif ($meta['limited_plan'] === true) {
+                $limitedPlanIds[$pkgId] = true;
+            }
+        }
+
+        $unlimitedIds = array_keys($unlimitedIds);
+        $limitedPlanIds = array_keys($limitedPlanIds);
+
+        // ── Unlimited packages: must have is_unlimited=true AND credits=0 ────
+        $unlimFails = [];
+        if (! empty($unlimitedIds)) {
+            $pkgs = DB::table('packages')->whereIn('id', $unlimitedIds)->get();
+            foreach ($pkgs as $pkg) {
+                $issues = [];
+                if (! $pkg->is_unlimited) {
+                    $issues[] = 'is_unlimited=false (must be true)';
+                }
+                if ((int) $pkg->credits !== 0) {
+                    $issues[] = "credits={$pkg->credits} (must be 0)";
+                }
+                if (! empty($issues)) {
+                    $unlimFails[] = "  ID={$pkg->id} '{$pkg->name}': ".implode(', ', $issues);
+                }
+            }
+            $foundIds = $pkgs->pluck('id')->all();
+            foreach (array_diff($unlimitedIds, $foundIds) as $id) {
+                $unlimFails[] = "  ID={$id}: package not found in DB";
+            }
+        }
+
+        if (empty($unlimFails)) {
+            $label = empty($unlimitedIds) ? 'none in map' : count($unlimitedIds).' OK';
+            $this->line("  Unlimited package config : <fg=green;options=bold>PASS</> ({$label})");
+        } else {
+            $this->line('  Unlimited package config : <fg=red;options=bold>FAIL</>');
+            foreach ($unlimFails as $msg) {
+                $this->warn($msg);
+            }
+            $this->blockingErrors[] = 'Unlimited package misconfiguration — set is_unlimited=true, credits=0 before live import.';
+        }
+
+        $this->newLine();
+
+        // ── Limited-plan packages: must have weekly_booking_limit >= 1 ────────
+        $limitedFails = [];
+        if (! empty($limitedPlanIds)) {
+            $pkgs = DB::table('packages')->whereIn('id', $limitedPlanIds)->get();
+            foreach ($pkgs as $pkg) {
+                $wbl = $pkg->weekly_booking_limit;
+                if ($wbl === null || (int) $wbl < 1) {
+                    $limitedFails[] = "  ID={$pkg->id} '{$pkg->name}': weekly_booking_limit=".($wbl ?? 'null').' (must be ≥ 1)';
+                }
+            }
+            $foundIds = $pkgs->pluck('id')->all();
+            foreach (array_diff($limitedPlanIds, $foundIds) as $id) {
+                $limitedFails[] = "  ID={$id}: package not found in DB";
+            }
+        }
+
+        if (empty($limitedFails)) {
+            $label = empty($limitedPlanIds) ? 'none in map' : count($limitedPlanIds).' OK';
+            $this->line("  Limited plan config      : <fg=green;options=bold>PASS</> ({$label})");
+        } else {
+            $this->line('  Limited plan config      : <fg=red;options=bold>FAIL</>');
+            foreach ($limitedFails as $msg) {
+                $this->warn($msg);
+            }
+            $this->blockingErrors[] = 'Limited-plan package misconfiguration — set weekly_booking_limit ≥ 1 before live import.';
+        }
+
+        if (! empty($this->blockingErrors)) {
+            $this->newLine();
+            $this->error('  Configuration errors detected — fix before running live import.');
+        }
     }
 
     private function section(string $title): void

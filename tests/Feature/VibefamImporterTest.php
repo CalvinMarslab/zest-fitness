@@ -214,7 +214,109 @@ class VibefamImporterTest extends TestCase
         unlink($csv);
     }
 
+    // ── Test 11: Correctly configured unlimited package does not produce a false blocker ──
+
+    public function test_correct_unlimited_config_does_not_block(): void
+    {
+        $hyroxId = (int) DB::table('packages')->where('name', 'HYROX 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026 Hyrox Unlimited',
+            'total_credits' => 999,
+            'credits_left' => 999,
+        ]]);
+        $map = $this->makePackageMapJson(['2026 Hyrox Unlimited' => $hyroxId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(0);
+
+        unlink($csv);
+        unlink($map);
+    }
+
+    // ── Test 12: Incorrectly configured unlimited package produces a hard blocker ─
+
+    public function test_wrong_unlimited_config_blocks_import(): void
+    {
+        DB::table('packages')->where('name', 'HYROX 1-Month')
+            ->update(['is_unlimited' => false, 'credits' => 999]);
+
+        $hyroxId = (int) DB::table('packages')->where('name', 'HYROX 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026 Hyrox Unlimited',
+            'total_credits' => 999,
+            'credits_left' => 999,
+        ]]);
+        $map = $this->makePackageMapJson(['2026 Hyrox Unlimited' => $hyroxId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        unlink($csv);
+        unlink($map);
+    }
+
+    // ── Test 13: weekly_booking_limit=2 passes for limited plan ──────────────
+
+    public function test_correct_weekly_booking_limit_passes(): void
+    {
+        $limitedId = (int) DB::table('packages')->where('name', 'Limited 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026Q2 Limited Plan (2x a week)',
+            'total_credits' => 8,
+            'credits_left' => 6,
+        ]]);
+        $map = $this->makePackageMapJson(['2026Q2 Limited Plan (2x a week)' => $limitedId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(0);
+
+        unlink($csv);
+        unlink($map);
+    }
+
+    // ── Test 14: Missing weekly_booking_limit blocks import ───────────────────
+
+    public function test_missing_weekly_booking_limit_blocks_import(): void
+    {
+        DB::table('packages')->where('name', 'Limited 1-Month')
+            ->update(['weekly_booking_limit' => null]);
+
+        $limitedId = (int) DB::table('packages')->where('name', 'Limited 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026Q2 Limited Plan (2x a week)',
+            'total_credits' => 8,
+            'credits_left' => 6,
+        ]]);
+        $map = $this->makePackageMapJson(['2026Q2 Limited Plan (2x a week)' => $limitedId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        unlink($csv);
+        unlink($map);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private function makePackageMapJson(array $vibefamToId): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'pkg-map-').'.json';
+        file_put_contents($path, json_encode($vibefamToId));
+
+        return $path;
+    }
 
     private function makeCsv(array $rows): string
     {
