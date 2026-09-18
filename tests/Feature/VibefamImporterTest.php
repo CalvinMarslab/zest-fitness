@@ -308,6 +308,56 @@ class VibefamImporterTest extends TestCase
         unlink($map);
     }
 
+    // ── Test 15: weekly_booking_limit=1 blocks (must be exactly 2) ───────────
+
+    public function test_weekly_booking_limit_1_blocks_import(): void
+    {
+        DB::table('packages')->where('name', 'Limited 1-Month')
+            ->update(['weekly_booking_limit' => 1]);
+
+        $limitedId = (int) DB::table('packages')->where('name', 'Limited 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026Q2 Limited Plan (2x a week)',
+            'total_credits' => 8,
+            'credits_left' => 6,
+        ]]);
+        $map = $this->makePackageMapJson(['2026Q2 Limited Plan (2x a week)' => $limitedId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        unlink($csv);
+        unlink($map);
+    }
+
+    // ── Test 16: weekly_booking_limit=3 blocks (must be exactly 2) ───────────
+
+    public function test_weekly_booking_limit_3_blocks_import(): void
+    {
+        DB::table('packages')->where('name', 'Limited 1-Month')
+            ->update(['weekly_booking_limit' => 3]);
+
+        $limitedId = (int) DB::table('packages')->where('name', 'Limited 1-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => '2026Q2 Limited Plan (2x a week)',
+            'total_credits' => 8,
+            'credits_left' => 6,
+        ]]);
+        $map = $this->makePackageMapJson(['2026Q2 Limited Plan (2x a week)' => $limitedId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        unlink($csv);
+        unlink($map);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function makePackageMapJson(array $vibefamToId): string

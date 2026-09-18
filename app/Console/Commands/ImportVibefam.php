@@ -786,14 +786,14 @@ class ImportVibefam extends Command
 
         $this->newLine();
 
-        // ── Limited-plan packages: must have weekly_booking_limit >= 1 ────────
+        // ── Limited-plan packages: must have weekly_booking_limit === 2 ─────────
         $limitedFails = [];
         if (! empty($limitedPlanIds)) {
             $pkgs = DB::table('packages')->whereIn('id', $limitedPlanIds)->get();
             foreach ($pkgs as $pkg) {
                 $wbl = $pkg->weekly_booking_limit;
-                if ($wbl === null || (int) $wbl < 1) {
-                    $limitedFails[] = "  ID={$pkg->id} '{$pkg->name}': weekly_booking_limit=".($wbl ?? 'null').' (must be ≥ 1)';
+                if ((int) $wbl !== 2) {
+                    $limitedFails[] = "  ID={$pkg->id} '{$pkg->name}': weekly_booking_limit=".($wbl ?? 'null').' (must be exactly 2 — VibeFam Limited Plan business rule)';
                 }
             }
             $foundIds = $pkgs->pluck('id')->all();
@@ -803,14 +803,14 @@ class ImportVibefam extends Command
         }
 
         if (empty($limitedFails)) {
-            $label = empty($limitedPlanIds) ? 'none in map' : count($limitedPlanIds).' OK';
+            $label = empty($limitedPlanIds) ? 'none in map' : count($limitedPlanIds).' OK (weekly_booking_limit=2)';
             $this->line("  Limited plan config      : <fg=green;options=bold>PASS</> ({$label})");
         } else {
             $this->line('  Limited plan config      : <fg=red;options=bold>FAIL</>');
             foreach ($limitedFails as $msg) {
                 $this->warn($msg);
             }
-            $this->blockingErrors[] = 'Limited-plan package misconfiguration — set weekly_booking_limit ≥ 1 before live import.';
+            $this->blockingErrors[] = 'Limited-plan package misconfiguration — weekly_booking_limit must be exactly 2 before live import.';
         }
 
         if (! empty($this->blockingErrors)) {
