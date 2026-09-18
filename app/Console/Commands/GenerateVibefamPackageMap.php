@@ -35,7 +35,7 @@ class GenerateVibefamPackageMap extends Command
      * unlimited=false → DB package must have is_unlimited=false
      * weekly_cap=N    → DB package must have weekly_booking_limit=N
      */
-    private const CANONICAL_PACKAGES = [
+    public const CANONICAL_PACKAGES = [
         '10 Credit Package' => ['db' => '10 Credit Package',           'unlimited' => false, 'weekly_cap' => null],
         '12 Credit Package' => ['db' => '12 Credit Package',           'unlimited' => false, 'weekly_cap' => null],
         '20 Credit Package' => ['db' => '20 Credit Package',           'unlimited' => false, 'weekly_cap' => null],

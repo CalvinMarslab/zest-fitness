@@ -85,7 +85,7 @@ class VibefamImporterTest extends TestCase
         $this->artisan('vibefam:import', [
             '--memberships-csv' => $csv,
             '--dry-run' => true,
-        ])->assertExitCode(0); // Dry-run exits OK but marks package UNCLASSIFIED
+        ])->assertExitCode(1); // Unknown packages are a hard blocker, even during rehearsal
 
         unlink($csv);
     }
@@ -381,6 +381,68 @@ class VibefamImporterTest extends TestCase
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    public function test_hand_edited_map_cannot_point_to_wrong_finite_package(): void
+    {
+        $wrongId = (int) DB::table('packages')->where('name', '10 Credit Package')->value('id');
+        $csv = $this->makeCsv([['package' => '12 Credit Class']]);
+        $map = $this->makePackageMapJson(['12 Credit Class' => $wrongId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        unlink($csv);
+        unlink($map);
+    }
+
+    public function test_invalid_source_values_are_hard_blockers(): void
+    {
+        $csv = $this->makeCsv([[
+            'email' => 'not-an-email',
+            'credits_left' => 'not-a-number',
+            'purchased' => 'not-a-date',
+        ]]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--dry-run' => true,
+        ])->assertExitCode(1);
+
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('user_subscriptions', 0);
+        unlink($csv);
+    }
+
+    public function test_live_import_is_idempotent_and_preserves_finite_credits(): void
+    {
+        $packageId = (int) DB::table('packages')->where('name', '12 Credit Package')->value('id');
+        $csv = $this->makeCsv([[
+            'email' => 'cutover@test.com',
+            'package' => '12 Credit Class',
+            'credits_left' => 10,
+        ]]);
+        $map = $this->makePackageMapJson(['12 Credit Class' => $packageId]);
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $this->artisan('vibefam:import', [
+                '--memberships-csv' => $csv,
+                '--package-map' => $map,
+            ])->expectsConfirmation('Run live import? This will create users and subscriptions.', 'yes')
+                ->assertExitCode(0);
+        }
+
+        $userId = DB::table('users')->where('email', 'cutover@test.com')->value('id');
+        $this->assertDatabaseCount('user_subscriptions', 1);
+        $this->assertDatabaseCount('credit_transactions', 1);
+        $this->assertSame(10, (int) DB::table('users')->where('id', $userId)->value('credits'));
+        $this->assertSame(10, (int) DB::table('user_subscriptions')->where('user_id', $userId)->value('credits_remaining'));
+
+        unlink($csv);
+        unlink($map);
+    }
 
     private function makePackageMapJson(array $vibefamToId): string
     {

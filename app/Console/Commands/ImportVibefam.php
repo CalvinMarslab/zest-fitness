@@ -136,8 +136,28 @@ class ImportVibefam extends Command
         ));
 
         $packageMap = [];
-        if ($packageMapFile && file_exists($packageMapFile)) {
-            $packageMap = json_decode(file_get_contents($packageMapFile), true) ?? [];
+        if ($packageMapFile) {
+            if (! file_exists($packageMapFile)) {
+                $this->error("Package map file not found: {$packageMapFile}");
+
+                return self::FAILURE;
+            }
+
+            try {
+                $packageMap = json_decode(file_get_contents($packageMapFile), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException $e) {
+                $this->error('Package map is not valid JSON: '.$e->getMessage());
+
+                return self::FAILURE;
+            }
+
+            if (! is_array($packageMap)) {
+                $this->error('Package map must be a JSON object.');
+
+                return self::FAILURE;
+            }
+
+            $this->validatePackageMap($memberships, $packageMap);
         }
 
         $this->printReport($memberships, $byEmail, $packageMap, $zeroPackageMembers, $duplicates, $membersList);
@@ -316,21 +336,29 @@ class ImportVibefam extends Command
             $ref = 'email='.($row['email'] ?? '?');
 
             if (empty($row['email'])) {
-                $this->warnings[] = "Row {$line}: missing email (name={$row['customer_name']})";
+                $this->blockingErrors[] = "Row {$line}: missing email (name=".($row['customer_name'] ?? '?').')';
+            } elseif (! filter_var($row['email'], FILTER_VALIDATE_EMAIL)) {
+                $this->blockingErrors[] = "Row {$line}: invalid email='{$row['email']}'";
             }
             if (empty($row['package_name'])) {
-                $this->warnings[] = "Row {$line}: missing package_name ({$ref})";
+                $this->blockingErrors[] = "Row {$line}: missing package_name ({$ref})";
+            } elseif (! array_key_exists($row['package_name'], self::VIBEFAM_CANONICAL)) {
+                $this->blockingErrors[] = "Row {$line}: unclassified package_name='{$row['package_name']}' ({$ref})";
             }
 
             $left = $row['credits_left'] ?? '';
             $total = $row['total_credits'] ?? '';
 
             if ($left !== '' && ! is_numeric($left)) {
-                $this->warnings[] = "Row {$line}: non-numeric credits_left='{$left}' ({$ref})";
+                $this->blockingErrors[] = "Row {$line}: non-numeric credits_left='{$left}' ({$ref})";
             } elseif ($left !== '' && (float) $left < 0) {
-                $this->warnings[] = "Row {$line}: negative credits_left={$left} ({$ref})";
-            } elseif ($left !== '' && $total !== '' && (float) $left > (float) $total && ! $this->isRowUnlimited($row)) {
-                $this->warnings[] = "Row {$line}: credits_left > total_credits ({$left} > {$total}) ({$ref})";
+                $this->blockingErrors[] = "Row {$line}: negative credits_left={$left} ({$ref})";
+            } elseif ($left !== '' && $total !== '' && is_numeric($total) && (float) $left > (float) $total && ! $this->isRowUnlimited($row)) {
+                $this->blockingErrors[] = "Row {$line}: credits_left > total_credits ({$left} > {$total}) ({$ref})";
+            }
+
+            if ($total === '' || ! is_numeric($total) || (float) $total < 0) {
+                $this->blockingErrors[] = "Row {$line}: total_credits must be a non-negative number ({$ref})";
             }
 
             foreach (['date_of_purchase', 'expiry_date'] as $field) {
@@ -338,9 +366,70 @@ class ImportVibefam extends Command
                     try {
                         Carbon::parse($row[$field]);
                     } catch (\Exception) {
-                        $this->warnings[] = "Row {$line}: invalid date {$field}='{$row[$field]}' ({$ref})";
+                        $this->blockingErrors[] = "Row {$line}: invalid date {$field}='{$row[$field]}' ({$ref})";
                     }
+                } else {
+                    $this->blockingErrors[] = "Row {$line}: missing {$field} ({$ref})";
                 }
+            }
+        }
+    }
+
+    private function validatePackageMap(array $memberships, array $packageMap): void
+    {
+        foreach ($this->extractUniquePackages($memberships) as $vibefamName) {
+            $meta = self::VIBEFAM_CANONICAL[$vibefamName] ?? null;
+            if (! $meta) {
+                continue;
+            }
+
+            if (! array_key_exists($vibefamName, $packageMap)) {
+                $this->blockingErrors[] = "Package map is missing '{$vibefamName}'.";
+
+                continue;
+            }
+
+            $mapEntry = $packageMap[$vibefamName];
+            $packageId = is_array($mapEntry) ? ($mapEntry['package_id'] ?? null) : $mapEntry;
+            if (! is_int($packageId) && ! (is_string($packageId) && ctype_digit($packageId))) {
+                $this->blockingErrors[] = "Package map entry '{$vibefamName}' must contain a positive integer package_id.";
+
+                continue;
+            }
+
+            $packageId = (int) $packageId;
+            if ($packageId < 1) {
+                $this->blockingErrors[] = "Package map entry '{$vibefamName}' must contain a positive integer package_id.";
+
+                continue;
+            }
+
+            $expected = GenerateVibefamPackageMap::CANONICAL_PACKAGES[$meta['canon']] ?? null;
+            if (! $expected) {
+                $this->blockingErrors[] = "No canonical package specification exists for '{$vibefamName}'.";
+
+                continue;
+            }
+
+            $package = DB::table('packages')->where('id', $packageId)->first();
+            if (! $package) {
+                $this->blockingErrors[] = "Package map entry '{$vibefamName}' references missing package ID={$packageId}.";
+
+                continue;
+            }
+
+            if ($package->name !== $expected['db']) {
+                $this->blockingErrors[] = "Package map entry '{$vibefamName}' points to ID={$packageId} '{$package->name}', expected '{$expected['db']}'.";
+            }
+            if ((bool) $package->is_unlimited !== $expected['unlimited']) {
+                $expectedFlag = $expected['unlimited'] ? 'true' : 'false';
+                $this->blockingErrors[] = "Package ID={$packageId} '{$package->name}' must have is_unlimited={$expectedFlag}.";
+            }
+            if ($expected['unlimited'] && (int) $package->credits !== 0) {
+                $this->blockingErrors[] = "Unlimited package ID={$packageId} '{$package->name}' must have credits=0.";
+            }
+            if ($expected['weekly_cap'] !== null && (int) $package->weekly_booking_limit !== $expected['weekly_cap']) {
+                $this->blockingErrors[] = "Package ID={$packageId} '{$package->name}' must have weekly_booking_limit={$expected['weekly_cap']}.";
             }
         }
     }
@@ -712,6 +801,13 @@ class ImportVibefam extends Command
         }
 
         // ── PACKAGE CONFIGURATION CHECKS ─────────────────────────────────────
+        if (! empty($this->blockingErrors)) {
+            $this->section('BLOCKING ERRORS ('.count($this->blockingErrors).')');
+            foreach (array_unique($this->blockingErrors) as $error) {
+                $this->error("  ✗  {$error}");
+            }
+        }
+
         $this->printPackageConfigSection($packageMap);
     }
 
