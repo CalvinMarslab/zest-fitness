@@ -358,6 +358,28 @@ class VibefamImporterTest extends TestCase
         unlink($map);
     }
 
+    // ── Test 17: Hyrox Unlimited 6 Month maps correctly and does not block ──────
+
+    public function test_hyrox_unlimited_6_month_maps_and_passes(): void
+    {
+        $hyrox6Id = (int) DB::table('packages')->where('name', 'HYROX 6-Month')->value('id');
+        $csv = $this->makeCsv([[
+            'package' => 'Hyrox Unlimited 6 Month',
+            'total_credits' => 200,
+            'credits_left' => 198,
+        ]]);
+        $map = $this->makePackageMapJson(['Hyrox Unlimited 6 Month' => $hyrox6Id]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+            '--dry-run' => true,
+        ])->assertExitCode(0);
+
+        unlink($csv);
+        unlink($map);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private function makePackageMapJson(array $vibefamToId): string

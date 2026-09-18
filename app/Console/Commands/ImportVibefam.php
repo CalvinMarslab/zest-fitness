@@ -72,6 +72,7 @@ class ImportVibefam extends Command
         'Hyrox Unlimited 1 Month' => ['canon' => 'Hyrox Unlimited — 1 Month',    'unlimited' => true,  'limited_plan' => false],
         '2026 3 Months Unlimited Hyrox' => ['canon' => 'Hyrox Unlimited — 3 Months',   'unlimited' => true,  'limited_plan' => false],
         'Hyrox Unlimited 3 Month' => ['canon' => 'Hyrox Unlimited — 3 Months',   'unlimited' => true,  'limited_plan' => false],
+        'Hyrox Unlimited 6 Month' => ['canon' => 'Hyrox Unlimited — 6 Months',   'unlimited' => true,  'limited_plan' => false],
         // ── Full Unlimited ─────────────────────────────────────────────────────
         '2026 1 Month Unlimited' => ['canon' => 'Full Unlimited — 1 Month',      'unlimited' => true,  'limited_plan' => false],
         '2026 6 Month Unlimited' => ['canon' => 'Full Unlimited — 6 Months',     'unlimited' => true,  'limited_plan' => false],

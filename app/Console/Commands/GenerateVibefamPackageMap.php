@@ -48,6 +48,7 @@ class GenerateVibefamPackageMap extends Command
         'Limited Plan — 2x Per Week' => ['db' => 'Limited 1-Month',            'unlimited' => false, 'weekly_cap' => 2],
         'Hyrox Unlimited — 1 Month' => ['db' => 'HYROX 1-Month',              'unlimited' => true,  'weekly_cap' => null],
         'Hyrox Unlimited — 3 Months' => ['db' => 'HYROX 3-Month',              'unlimited' => true,  'weekly_cap' => null],
+        'Hyrox Unlimited — 6 Months' => ['db' => 'HYROX 6-Month',              'unlimited' => true,  'weekly_cap' => null],
         'Full Unlimited — 1 Month' => ['db' => 'Full Unlimited 1-Month',      'unlimited' => true,  'weekly_cap' => null],
         'Full Unlimited — 6 Months' => ['db' => 'Full Unlimited 6-Month',      'unlimited' => true,  'weekly_cap' => null],
         'Full Unlimited — 12 Months' => ['db' => 'Full Unlimited 12-Month',     'unlimited' => true,  'weekly_cap' => null],
