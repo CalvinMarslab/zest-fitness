@@ -444,6 +444,31 @@ class VibefamImporterTest extends TestCase
         unlink($map);
     }
 
+    public function test_live_import_keeps_first_row_from_exact_duplicates(): void
+    {
+        $packageId = (int) DB::table('packages')->where('name', '12 Credit Package')->value('id');
+        $row = [
+            'email' => 'duplicate@test.com',
+            'package' => '12 Credit Class',
+            'credits_left' => 10,
+        ];
+        $csv = $this->makeCsv([$row, $row, $row]);
+        $map = $this->makePackageMapJson(['12 Credit Class' => $packageId]);
+
+        $this->artisan('vibefam:import', [
+            '--memberships-csv' => $csv,
+            '--package-map' => $map,
+        ])->expectsConfirmation('Run live import? This will create users and subscriptions.', 'yes')
+            ->assertExitCode(0);
+
+        $this->assertDatabaseCount('user_subscriptions', 1);
+        $this->assertDatabaseCount('credit_transactions', 1);
+        $this->assertDatabaseCount('vibefam_import_map', 2);
+
+        unlink($csv);
+        unlink($map);
+    }
+
     private function makePackageMapJson(array $vibefamToId): string
     {
         $path = tempnam(sys_get_temp_dir(), 'pkg-map-').'.json';

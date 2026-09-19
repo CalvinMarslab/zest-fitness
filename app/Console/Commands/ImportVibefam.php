@@ -226,7 +226,7 @@ class ImportVibefam extends Command
             }
         }
 
-        return $this->runLiveImport($byEmail, $zeroPackageMembers, $packageMap, $duplicates);
+        return $this->runLiveImport($byEmail, $zeroPackageMembers, $packageMap);
     }
 
     // ── CSV Parsers ──────────────────────────────────────────────────────────────
@@ -510,8 +510,6 @@ class ImportVibefam extends Command
         array $duplicates,
         array $membersList,
     ): void {
-        $dupeKeys = array_column($duplicates, 'key');
-
         // Bucket every non-duplicate row by type and active/expired
         $finiteActive = [];
         $finiteExpired = [];
@@ -521,10 +519,13 @@ class ImportVibefam extends Command
         $limitedExpired = [];
         $unclassified = [];
 
+        $seenSourceKeys = [];
         foreach ($memberships as $row) {
-            if (in_array($this->sourceKey($row), $dupeKeys, true)) {
+            $sourceKey = $this->sourceKey($row);
+            if (isset($seenSourceKeys[$sourceKey])) {
                 continue;
             }
+            $seenSourceKeys[$sourceKey] = true;
             $meta = $this->classifyRow($row);
             $expired = $this->isExpired($row['expiry_date'] ?? '');
 
@@ -930,23 +931,23 @@ class ImportVibefam extends Command
         array $byEmail,
         array $zeroPackageMembers,
         array $packageMap,
-        array $duplicates,
     ): int {
-        $dupeKeys = array_column($duplicates, 'key');
         $bar = $this->output->createProgressBar(count($byEmail) + count($zeroPackageMembers));
         $bar->start();
 
         try {
-            DB::transaction(function () use ($byEmail, $zeroPackageMembers, $packageMap, $dupeKeys, $bar) {
+            DB::transaction(function () use ($byEmail, $zeroPackageMembers, $packageMap, $bar) {
+                $seenSourceKeys = [];
                 foreach ($byEmail as $subs) {
                     $user = $this->upsertUser($subs[0]);
                     $runningBalance = 0;
 
                     foreach ($subs as $sub) {
                         $key = $this->sourceKey($sub);
-                        if (in_array($key, $dupeKeys, true)) {
+                        if (isset($seenSourceKeys[$key])) {
                             continue;
                         }
+                        $seenSourceKeys[$key] = true;
                         $mapEntry = $packageMap[$sub['package_name']] ?? null;
                         $pkgId = is_array($mapEntry) ? ($mapEntry['package_id'] ?? null) : $mapEntry;
                         $isUnlimited = $this->resolveIsUnlimited($sub, $mapEntry);
