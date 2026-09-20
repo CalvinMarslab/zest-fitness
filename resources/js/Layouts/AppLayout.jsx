@@ -33,10 +33,18 @@ const AppointmentsIcon = ({ active }) => (
     </svg>
 );
 
+const ProfileIcon = ({ active }) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="8" r="4" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8"/>
+        <path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+);
+
 const NAV_ITEMS = [
     { label: 'Schedule', routeName: 'schedule',    Icon: ScheduleIcon  },
     { label: 'Bookings', routeName: 'my-bookings', Icon: BookingsIcon  },
     { label: 'Appointments', routeName: 'appointments.index', Icon: AppointmentsIcon },
+    { label: 'Profile', routeName: 'profile.edit', Icon: ProfileIcon },
 ];
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
