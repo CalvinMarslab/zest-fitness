@@ -264,7 +264,18 @@ function WodBlockModal({ wodType, config, onConfigChange, onBack, onNext }) {
 
 function WodTypeSelector({ value, onChange, config, onConfigChange, onNext }) {
     const [step, setStep] = useState(null); // null | 'type' | 'block'
+    const [editingType, setEditingType] = useState(value);
     const selected = WOD_TYPES.find((t) => t.key === value);
+
+    function openTypePicker() {
+        setEditingType(value);
+        setStep('type');
+    }
+
+    function selectType(type) {
+        setEditingType(type);
+        onChange(type);
+    }
 
     return (
         <>
@@ -272,7 +283,7 @@ function WodTypeSelector({ value, onChange, config, onConfigChange, onNext }) {
                 <label className="text-xs font-semibold text-gray-500 uppercase">Training Type</label>
                 <button
                     type="button"
-                    onClick={() => setStep('type')}
+                    onClick={openTypePicker}
                     className="mt-2 w-full flex items-center justify-between border rounded-xl px-4 py-2.5 text-sm transition-all hover:border-orange-300"
                     style={{ borderColor: value ? '#f97316' : undefined, background: value ? '#fff7f0' : undefined }}
                 >
@@ -286,7 +297,7 @@ function WodTypeSelector({ value, onChange, config, onConfigChange, onNext }) {
             {step === 'type' && (
                 <WodTypeModal
                     value={value}
-                    onChange={onChange}
+                    onChange={selectType}
                     onClose={() => setStep(null)}
                     onNext={() => setStep('block')}
                 />
@@ -294,7 +305,7 @@ function WodTypeSelector({ value, onChange, config, onConfigChange, onNext }) {
 
             {step === 'block' && (
                 <WodBlockModal
-                    wodType={value}
+                    wodType={editingType ?? value}
                     config={config}
                     onConfigChange={onConfigChange}
                     onBack={() => setStep('type')}
@@ -490,9 +501,19 @@ function ExerciseModal({ exercises, onChange, onClose }) {
                                     />
                                 ))
                             ) : (
-                                <p className="px-5 py-10 text-sm text-center" style={{ color: '#6b7280' }}>
-                                    No exercises match "{search}"
-                                </p>
+                                <div className="px-5 py-8 text-center">
+                                    <p className="text-sm" style={{ color: '#6b7280' }}>No exercises match "{search}"</p>
+                                    {search.trim() && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRowAction(search.trim())}
+                                            className="mt-4 px-4 py-2 rounded-xl text-sm font-bold"
+                                            style={{ background: '#f97316', color: 'white' }}
+                                        >
+                                            + Add custom exercise “{search.trim()}”
+                                        </button>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </>
@@ -829,7 +850,7 @@ function EditPanel({ gymClass, template }) {
 
                     <WodTypeSelector
                         value={form.data.wod_type}
-                        onChange={(t) => { form.setData('wod_type', t); form.setData('wod_config', {}); }}
+                        onChange={(t) => form.setData((data) => ({ ...data, wod_type: t, wod_config: {} }))}
                         config={form.data.wod_config}
                         onConfigChange={(c) => form.setData('wod_config', c)}
                         onNext={() => setShowExerciseModal(true)}

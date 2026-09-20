@@ -268,15 +268,20 @@ function AddClassForm({ onSuccess }) {
 function ExerciseEditor({ exercises, onChange }) {
     const [draft, setDraft] = useState('');
 
+    const normalized = (exercises ?? []).map((exercise) => typeof exercise === 'string'
+        ? { name: exercise, volume: '', target: '', men_rx: '', men_sc: '', women_rx: '', women_sc: '', rest: '' }
+        : exercise
+    );
+
     function add() {
         const trimmed = draft.trim();
-        if (!trimmed || exercises.includes(trimmed)) { setDraft(''); return; }
-        onChange([...exercises, trimmed]);
+        if (!trimmed || normalized.some((exercise) => exercise.name.toLowerCase() === trimmed.toLowerCase())) { setDraft(''); return; }
+        onChange([...normalized, { name: trimmed, volume: '', target: '', men_rx: '', men_sc: '', women_rx: '', women_sc: '', rest: '' }]);
         setDraft('');
     }
 
-    function remove(ex) {
-        onChange(exercises.filter((e) => e !== ex));
+    function remove(index) {
+        onChange(normalized.filter((_, i) => i !== index));
     }
 
     return (
@@ -285,12 +290,12 @@ function ExerciseEditor({ exercises, onChange }) {
             <p className="text-xs text-gray-400 mt-0.5 mb-2">Members will see these as suggestions when logging results.</p>
 
             {/* Existing exercises */}
-            {exercises.length > 0 && (
+            {normalized.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                    {exercises.map((ex) => (
-                        <span key={ex} className="flex items-center gap-1 text-xs bg-orange-50 border border-orange-200 text-orange-700 px-2.5 py-1 rounded-full font-medium">
-                            {ex}
-                            <button type="button" onClick={() => remove(ex)} className="text-orange-400 hover:text-orange-600 font-bold leading-none">×</button>
+                    {normalized.map((ex, index) => (
+                        <span key={`${ex.name}-${index}`} className="flex items-center gap-1 text-xs bg-orange-50 border border-orange-200 text-orange-700 px-2.5 py-1 rounded-full font-medium">
+                            {ex.name}{ex.volume ? ` · ${ex.volume}` : ''}
+                            <button type="button" onClick={() => remove(index)} className="text-orange-400 hover:text-orange-600 font-bold leading-none">×</button>
                         </span>
                     ))}
                 </div>
@@ -323,7 +328,10 @@ function EditModal({ gymClass, onClose }) {
         coach:      gymClass.coach,
         start_time: toLocalInputDT(gymClass.start_time),
         capacity:   gymClass.capacity,
-        exercises:  gymClass.exercises ?? [],
+        exercises:  (gymClass.exercises ?? []).map((exercise) => typeof exercise === 'string'
+            ? { name: exercise, volume: '', target: '', men_rx: '', men_sc: '', women_rx: '', women_sc: '', rest: '' }
+            : exercise
+        ),
     });
 
     function submit(e) {
