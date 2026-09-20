@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import AppLayout from '@/Layouts/AppLayout';
 import { getActivityType } from '@/config/activityTypes';
 import { parseLocalDT } from '@/utils/date';
@@ -323,8 +323,9 @@ export default function Schedule({ classes }) {
             )}
 
             {/* Header */}
-            <div className="mb-4">
+            <div className="mb-4 flex items-center justify-between">
                 <h1 className="text-2xl font-black text-[#333E48]">Schedule</h1>
+                <Link href="/appointments" className="rounded-xl bg-white border border-[#DDD5C0] px-3 py-2 text-xs font-bold text-[#333E48]">Private appointments →</Link>
             </div>
 
             <FlashMessage />

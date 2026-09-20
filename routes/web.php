@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\AdminBookingController;
+use App\Http\Controllers\Admin\AdminAppointmentController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminCoachController;
 use App\Http\Controllers\Admin\AdminDashboardController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\Admin\AdminPackageController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Coach\CoachClassController;
 use App\Http\Controllers\Coach\CoachDashboardController;
 use App\Http\Controllers\MyBookingsController;
@@ -61,6 +63,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-bookings', [MyBookingsController::class, 'index'])->name('my-bookings');
     Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
     Route::delete('/bookings', [BookingController::class, 'destroy'])->name('bookings.destroy');
+    Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.index');
+    Route::post('/appointments/{slot}', [AppointmentController::class, 'store'])->name('appointments.store');
+    Route::delete('/appointments/bookings/{booking}', [AppointmentController::class, 'destroy'])->name('appointments.destroy');
 
     // Packages
     Route::get('/packages', [PackageController::class, 'index'])->name('packages');
@@ -122,6 +127,15 @@ Route::middleware(['auth', 'admin'])
         Route::delete('/bookings/{booking}', [AdminBookingController::class, 'destroy'])->name('bookings.destroy');
         Route::patch('/bookings/{booking}/attendance', [AdminBookingController::class, 'updateAttendance'])->name('bookings.attendance');
         Route::post('/bookings/{booking}/promote', [AdminBookingController::class, 'promoteWaitlist'])->name('bookings.promote');
+
+        Route::get('/appointments', [AdminAppointmentController::class, 'index'])->name('appointments.index');
+        Route::post('/appointment-services', [AdminAppointmentController::class, 'storeService'])->name('appointment-services.store');
+        Route::patch('/appointment-services/{service}', [AdminAppointmentController::class, 'updateService'])->name('appointment-services.update');
+        Route::post('/appointment-slots', [AdminAppointmentController::class, 'storeSlot'])->name('appointment-slots.store');
+        Route::post('/appointment-slots/{slot}/book', [AdminAppointmentController::class, 'bookForMember'])->name('appointment-slots.book');
+        Route::delete('/appointment-slots/{slot}', [AdminAppointmentController::class, 'destroySlot'])->name('appointment-slots.destroy');
+        Route::patch('/appointment-bookings/{booking}/attendance', [AdminAppointmentController::class, 'updateAttendance'])->name('appointment-bookings.attendance');
+        Route::delete('/appointment-bookings/{booking}', [AdminAppointmentController::class, 'cancelBooking'])->name('appointment-bookings.destroy');
 
         // Settings
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');
