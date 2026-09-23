@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\GymClass;
+use App\Models\DailyWorkout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -14,7 +15,7 @@ class WodController extends Controller
     public function index(): Response
     {
         if (! session('wod_unlocked')) {
-            return Inertia::render('Wod', ['locked' => true, 'classes' => [], 'date' => Carbon::today()->toDateString()]);
+            return Inertia::render('Wod', ['locked' => true, 'classes' => [], 'dailyWorkouts' => [], 'date' => Carbon::today()->toDateString()]);
         }
 
         $today = Carbon::today();
@@ -36,6 +37,10 @@ class WodController extends Controller
         return Inertia::render('Wod', [
             'locked' => false,
             'classes' => $classes,
+            'dailyWorkouts' => DailyWorkout::whereDate('workout_date', $today)
+                ->where('is_published', true)
+                ->orderBy('program', 'desc')
+                ->get(['id', 'program', 'title', 'workout']),
             'date' => $today->toDateString(),
         ]);
     }

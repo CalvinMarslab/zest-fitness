@@ -3,6 +3,7 @@
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminAppointmentController;
+use App\Http\Controllers\Admin\AdminDailyWorkoutController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminCoachController;
 use App\Http\Controllers\Admin\AdminDashboardController;
@@ -136,6 +137,9 @@ Route::middleware(['auth', 'admin'])
         Route::delete('/appointment-slots/{slot}', [AdminAppointmentController::class, 'destroySlot'])->name('appointment-slots.destroy');
         Route::patch('/appointment-bookings/{booking}/attendance', [AdminAppointmentController::class, 'updateAttendance'])->name('appointment-bookings.attendance');
         Route::delete('/appointment-bookings/{booking}', [AdminAppointmentController::class, 'cancelBooking'])->name('appointment-bookings.destroy');
+
+        Route::get('/daily-workouts', [AdminDailyWorkoutController::class, 'index'])->name('daily-workouts.index');
+        Route::post('/daily-workouts', [AdminDailyWorkoutController::class, 'store'])->name('daily-workouts.store');
 
         // Settings
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');

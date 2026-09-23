@@ -5,6 +5,7 @@ const NAV = [
     { label: 'Dashboard', href: '/admin',           icon: '📊' },
     { label: 'Users',     href: '/admin/users',     icon: '👥' },
     { label: 'Classes',   href: '/admin/classes',   icon: '🏋️' },
+    { label: 'Daily Workouts', href: '/admin/daily-workouts', icon: '⚡' },
     { label: 'Bookings',  href: '/admin/bookings',  icon: '📋' },
     { label: 'Appointments', href: '/admin/appointments', icon: '🗓️' },
     { label: 'Packages',  href: '/admin/packages',  icon: '📦' },

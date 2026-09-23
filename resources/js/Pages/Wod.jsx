@@ -251,9 +251,23 @@ function ClassCard({ gymClass }) {
     );
 }
 
+function DailyWorkoutCard({ item }) {
+    const hyrox = item.program === 'hyrox';
+    return <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className={`h-2 ${hyrox ? 'bg-lime-400' : 'bg-orange-500'}`} />
+        <div className="p-5">
+            <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-black uppercase tracking-widest text-gray-500">{hyrox ? 'HYROX' : 'CrossFit'}</span>
+            </div>
+            <h2 className="text-xl font-extrabold text-gray-900">{item.title || `${hyrox ? 'HYROX' : 'CrossFit'} Workout`}</h2>
+            <div className="mt-5 whitespace-pre-wrap font-mono text-sm leading-7 text-gray-700 bg-gray-50 rounded-2xl p-4">{item.workout}</div>
+        </div>
+    </div>;
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function Wod({ locked, classes, date }) {
+export default function Wod({ locked, classes, dailyWorkouts = [], date }) {
     if (locked) return <PasscodeGate />;
 
     return (
@@ -275,7 +289,11 @@ export default function Wod({ locked, classes, date }) {
                     </button>
                 </div>
 
-                {classes.length === 0 ? (
+                {dailyWorkouts.length > 0 ? (
+                    <div className="space-y-4">
+                        {dailyWorkouts.map(item => <DailyWorkoutCard key={item.id} item={item} />)}
+                    </div>
+                ) : classes.length === 0 ? (
                     <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center shadow-sm">
                         <p className="text-4xl mb-3">🛌</p>
                         <p className="text-lg font-bold text-gray-900">Rest Day</p>
