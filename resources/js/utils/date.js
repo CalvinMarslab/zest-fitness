@@ -1,15 +1,12 @@
 /**
- * Parse a server datetime string as LOCAL time.
- *
- * Laravel stores times as entered (local) but serialises with a "Z" (UTC)
- * suffix, causing browsers to apply a timezone offset when parsing.
- * Stripping the Z makes JavaScript treat the value as local time, which
- * matches what the admin originally typed.
+ * Parse a server datetime for display in the browser's local timezone.
+ * Laravel serialises model dates as real UTC timestamps (with a trailing Z),
+ * so the timezone marker must be preserved for Malaysia time to be restored.
+ * Values without a timezone are treated as local time by the browser.
  */
 export function parseLocalDT(dt) {
     if (!dt) return new Date(NaN);
-    // Remove the trailing Z or any +HH:MM offset
-    return new Date(dt.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, ''));
+    return new Date(dt);
 }
 
 /**
