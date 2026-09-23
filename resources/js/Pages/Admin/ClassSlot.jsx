@@ -739,15 +739,11 @@ function ExerciseBuilder({ exercises, onChange, showModal, setShowModal }) {
 // ── Edit panel ────────────────────────────────────────────────────────────────
 
 function EditPanel({ gymClass, template }) {
-    const [showExerciseModal, setShowExerciseModal] = useState(false);
     const form = useForm({
         name:         gymClass.name,
         coach:        gymClass.coach,
         start_time:   toLocalInputDT(gymClass.start_time),
         capacity:     gymClass.capacity,
-        exercises:    normalizeExercises(gymClass.exercises ?? []),
-        wod_type:   gymClass.wod_type ?? null,
-        wod_config: gymClass.wod_config ?? {},
         is_cancelled: gymClass.is_cancelled ?? false,
     });
 
@@ -847,21 +843,6 @@ function EditPanel({ gymClass, template }) {
                             />
                         </div>
                     </div>
-
-                    <WodTypeSelector
-                        value={form.data.wod_type}
-                        onChange={(t) => form.setData((data) => ({ ...data, wod_type: t, wod_config: {} }))}
-                        config={form.data.wod_config}
-                        onConfigChange={(c) => form.setData('wod_config', c)}
-                        onNext={() => setShowExerciseModal(true)}
-                    />
-
-                    <ExerciseBuilder
-                        exercises={form.data.exercises}
-                        onChange={(ex) => form.setData('exercises', ex)}
-                        showModal={showExerciseModal}
-                        setShowModal={setShowExerciseModal}
-                    />
 
                     <div className="flex gap-2 pt-2">
                         <button type="button"
