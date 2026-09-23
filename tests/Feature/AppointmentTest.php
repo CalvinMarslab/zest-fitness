@@ -69,4 +69,31 @@ class AppointmentTest extends TestCase
         $this->assertSame('checked_in', $booking->fresh()->status);
         $this->assertNotNull($booking->fresh()->checked_in_at);
     }
+
+    public function test_admin_can_cancel_without_refunding_credits(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'is_admin' => true]);
+        $this->actingAs($admin)->post(route('admin.appointment-slots.book', $this->slot), ['user_id' => $this->member->id]);
+        $booking = AppointmentBooking::firstOrFail();
+
+        $this->actingAs($admin)->delete(route('admin.appointment-bookings.destroy', $booking), ['refund' => false])->assertRedirect();
+
+        $this->assertSame('late_cancel', $booking->fresh()->status);
+        $this->assertSame(3, $this->subscription->fresh()->credits_remaining);
+        $this->assertNull($booking->fresh()->credit_refunded_at);
+    }
+
+    public function test_admin_can_cancel_and_refund_credits_only_once(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'is_admin' => true]);
+        $this->actingAs($admin)->post(route('admin.appointment-slots.book', $this->slot), ['user_id' => $this->member->id]);
+        $booking = AppointmentBooking::firstOrFail();
+
+        $this->actingAs($admin)->delete(route('admin.appointment-bookings.destroy', $booking), ['refund' => true])->assertRedirect();
+        $this->actingAs($admin)->delete(route('admin.appointment-bookings.destroy', $booking), ['refund' => true])->assertRedirect();
+
+        $this->assertSame('cancelled', $booking->fresh()->status);
+        $this->assertSame(5, $this->subscription->fresh()->credits_remaining);
+        $this->assertNotNull($booking->fresh()->credit_refunded_at);
+    }
 }

@@ -46,7 +46,7 @@ class AppointmentBookingService
             $charge = $subscription->isUnlimited() ? 0 : $service->credits_required;
             $booking = AppointmentBooking::updateOrCreate(
                 ['appointment_slot_id' => $slot->id, 'user_id' => $user->id],
-                ['user_subscription_id' => $subscription->id, 'status' => 'booked', 'credits_charged' => $charge, 'booked_at' => now(), 'cancelled_at' => null]
+                ['user_subscription_id' => $subscription->id, 'status' => 'booked', 'credits_charged' => $charge, 'credit_refunded_at' => null, 'booked_at' => now(), 'cancelled_at' => null]
             );
             if ($charge) {
                 $subscription->decrement('credits_remaining', $charge);
@@ -58,20 +58,26 @@ class AppointmentBookingService
         });
     }
 
-    public function cancel(AppointmentBooking $booking, bool $adminOverride = false): void
+    public function cancel(AppointmentBooking $booking, ?bool $refundOverride = null): void
     {
-        DB::transaction(function () use ($booking, $adminOverride) {
+        DB::transaction(function () use ($booking, $refundOverride) {
             $booking = AppointmentBooking::with('slot.service')->lockForUpdate()->findOrFail($booking->id);
-            if (! in_array($booking->status, ['booked', 'checked_in'])) return;
+            if (! in_array($booking->status, ['booked', 'checked_in', 'cancelled', 'late_cancel'])) return;
             $cutoff = $booking->slot->service->cancellation_cutoff_hours;
-            $refundable = $adminOverride || ($booking->status === 'booked' && ($cutoff === null || now()->lt($booking->slot->start_time->copy()->subHours($cutoff))));
-            $booking->update(['status' => $refundable ? 'cancelled' : 'late_cancel', 'cancelled_at' => now()]);
-            if ($refundable && $booking->credits_charged > 0 && $booking->user_subscription_id) {
+            $policyRefundable = $booking->status === 'booked' && ($cutoff === null || now()->lt($booking->slot->start_time->copy()->subHours($cutoff)));
+            $refundable = $refundOverride ?? $policyRefundable;
+
+            if (in_array($booking->status, ['booked', 'checked_in'])) {
+                $booking->update(['status' => $refundable ? 'cancelled' : 'late_cancel', 'cancelled_at' => now()]);
+            }
+
+            if ($refundable && ! $booking->credit_refunded_at && $booking->credits_charged > 0 && $booking->user_subscription_id) {
                 $sub = UserSubscription::lockForUpdate()->find($booking->user_subscription_id);
                 if ($sub) {
                     $sub->increment('credits_remaining', $booking->credits_charged);
                     $sub->refresh();
                     CreditTransaction::create(['user_id' => $booking->user_id, 'user_subscription_id' => $sub->id, 'type' => 'booking_refund', 'amount' => $booking->credits_charged, 'balance_after' => $sub->credits_remaining, 'reason' => "Appointment cancellation #{$booking->id}"]);
+                    $booking->update(['credit_refunded_at' => now()]);
                     $booking->user()->first()?->syncCreditSummary();
                 }
             }

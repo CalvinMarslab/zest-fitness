@@ -67,5 +67,13 @@ class AdminAppointmentController extends Controller
         $booking->update(['status' => $data['status'], 'checked_in_at' => $data['status'] === 'checked_in' ? now() : null]);
         return back()->with('success', 'Appointment attendance updated.');
     }
-    public function cancelBooking(AppointmentBooking $booking): RedirectResponse { $this->bookingService->cancel($booking, true); return back()->with('success', 'Appointment cancelled and credits refunded.'); }
+    public function cancelBooking(Request $request, AppointmentBooking $booking): RedirectResponse
+    {
+        $data = $request->validate(['refund' => 'required|boolean']);
+        $this->bookingService->cancel($booking, $data['refund']);
+
+        return back()->with('success', $data['refund']
+            ? 'Appointment cancelled and credits refunded.'
+            : 'Appointment cancelled without refund.');
+    }
 }
