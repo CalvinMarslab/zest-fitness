@@ -143,6 +143,22 @@ class AdminTest extends TestCase
         $response->assertInertia(fn ($page) => $page->component('Admin/Classes'));
     }
 
+    public function test_admin_class_calendar_filters_and_orders_the_selected_date(): void
+    {
+        Carbon::setTestNow('2026-09-23 08:00:00');
+        $later = GymClass::factory()->create(['name' => 'Hyrox', 'start_time' => '2026-09-24 18:00:00']);
+        $earlier = GymClass::factory()->create(['name' => 'Train', 'start_time' => '2026-09-24 07:00:00']);
+        GymClass::factory()->create(['start_time' => '2026-09-25 07:00:00']);
+
+        $this->actingAs($this->admin)->get(route('admin.classes.index', ['date' => '2026-09-24']))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('calendarDate', '2026-09-24')
+                ->where('calendarClasses.0.id', $earlier->id)
+                ->where('calendarClasses.1.id', $later->id)
+                ->has('calendarClasses', 2));
+    }
+
     public function test_admin_can_create_single_class(): void
     {
         $response = $this->actingAs($this->admin)

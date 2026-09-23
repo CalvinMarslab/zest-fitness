@@ -481,7 +481,7 @@ function WeekView({ templates }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function Classes({ templates, specials }) {
+export default function Classes({ templates, specials, calendarDate, calendarClasses }) {
     const [showSpecial, setShowSpecial]       = useState(false);
     const [specialsFilter, setSpecialsFilter] = useState('upcoming');
     const [localSpecials, setLocalSpecials]   = useState(specials);
@@ -507,10 +507,50 @@ export default function Classes({ templates, specials }) {
         });
     }
 
+    function changeCalendarDate(value) {
+        router.get(route('admin.classes.index'), { date: value }, { preserveState: true, preserveScroll: true });
+    }
+
+    function shiftCalendarDate(days) {
+        const d = new Date(`${calendarDate}T12:00:00`);
+        d.setDate(d.getDate() + days);
+        const pad = n => String(n).padStart(2, '0');
+        changeCalendarDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    }
+
+    function openCalendarClass(gymClass) {
+        if (gymClass.template_id) {
+            router.get(route('admin.classes.slot'), { template_id: gymClass.template_id, id: gymClass.id });
+        } else {
+            setEditClass(gymClass);
+        }
+    }
+
     return (
         <AdminLayout title="Classes">
             {toast && <Toast message={toast} onHide={() => setToast(null)} />}
             {editClass && <EditModal gymClass={editClass} onClose={() => setEditClass(null)} />}
+
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+                <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                    <div className="mr-auto"><p className="text-xs font-black uppercase tracking-widest text-orange-500">Schedule Calendar</p><h2 className="text-lg font-black text-gray-900">{new Date(`${calendarDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2></div>
+                    <button onClick={() => shiftCalendarDate(-1)} className="w-10 h-10 rounded-xl bg-gray-100 font-black">←</button>
+                    <input type="date" value={calendarDate} onChange={e => changeCalendarDate(e.target.value)} className="rounded-xl border-gray-300 font-bold" />
+                    <button onClick={() => shiftCalendarDate(1)} className="w-10 h-10 rounded-xl bg-gray-100 font-black">→</button>
+                    <button onClick={() => changeCalendarDate(new Date().toLocaleDateString('en-CA'))} className="px-4 h-10 rounded-xl bg-orange-50 text-orange-600 text-sm font-bold">Today</button>
+                </div>
+                {calendarClasses.length === 0 ? <div className="py-12 text-center text-gray-400"><p className="text-3xl">📅</p><p className="mt-2 text-sm font-semibold">No classes on this date</p></div> : <div className="divide-y divide-gray-100">{calendarClasses.map(c => {
+                    const start = parseLocalDT(c.start_time);
+                    const end = c.end_time ? parseLocalDT(c.end_time) : new Date(start.getTime() + 60 * 60 * 1000);
+                    return <button key={c.id} onClick={() => openCalendarClass(c)} className="w-full p-4 flex items-center gap-4 text-left hover:bg-orange-50/50 transition-colors">
+                        <div className="w-20 shrink-0"><p className="font-black text-gray-900">{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p><p className="text-xs text-gray-400">{end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p></div>
+                        <span className={`w-1.5 h-14 rounded-full ${c.name.toLowerCase().includes('hyrox') ? 'bg-lime-400' : 'bg-orange-500'}`} />
+                        <div className="flex-1 min-w-0"><div className="flex items-center gap-2"><p className="font-black text-gray-900">{c.name}</p>{c.is_cancelled && <span className="text-[10px] font-black text-red-500 bg-red-50 px-2 py-0.5 rounded-full">CANCELLED</span>}</div><p className="text-sm text-gray-500">Instructor: {c.coach}{c.location ? ` · ${c.location}` : ''}</p></div>
+                        <div className="text-right"><p className="font-black text-gray-900">{c.confirmed_count}/{c.capacity}</p><p className="text-xs text-gray-400">booked{c.waitlist_count > 0 ? ` · ${c.waitlist_count} waitlist` : ''}</p></div>
+                        <span className="text-gray-300 text-xl">›</span>
+                    </button>;
+                })}</div>}
+            </div>
 
             <div className="mb-6 rounded-2xl bg-gray-900 text-white p-5 flex flex-wrap items-center gap-4">
                 <div className="flex-1 min-w-64">

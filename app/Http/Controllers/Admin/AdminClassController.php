@@ -20,9 +20,12 @@ class AdminClassController extends Controller
 {
     public function __construct(private readonly BookingService $bookingService) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
         \Artisan::call('classes:generate', ['--weeks' => 8]);
+
+        $request->validate(['date' => 'nullable|date']);
+        $calendarDate = Carbon::parse($request->query('date', now()->toDateString()))->toDateString();
 
         $templates = ClassTemplate::orderBy('day_of_week')->orderBy('start_time')->get();
 
@@ -36,6 +39,11 @@ class AdminClassController extends Controller
         return Inertia::render('Admin/Classes', [
             'templates' => $templates,
             'specials' => $specials,
+            'calendarDate' => $calendarDate,
+            'calendarClasses' => GymClass::withCount([
+                'bookings as confirmed_count' => fn ($q) => $q->whereIn('status', ['booked', 'checked_in']),
+                'bookings as waitlist_count' => fn ($q) => $q->where('status', 'waitlisted'),
+            ])->whereDate('start_time', $calendarDate)->orderBy('start_time')->get(),
         ]);
     }
 
