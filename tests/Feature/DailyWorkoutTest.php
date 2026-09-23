@@ -39,4 +39,16 @@ class DailyWorkoutTest extends TestCase
         $this->withSession(['wod_unlocked' => true])->get(route('wod'))->assertOk()
             ->assertInertia(fn ($page) => $page->where('dailyWorkouts.0.program', 'hyrox')->missing('dailyWorkouts.1'));
     }
+
+    public function test_logged_in_member_can_view_today_workout_without_passcode(): void
+    {
+        DailyWorkout::create(['workout_date' => today(), 'program' => 'crossfit', 'workout' => 'Member workout', 'is_published' => true]);
+        $member = User::factory()->create(['role' => 'member']);
+
+        $this->actingAs($member)->get(route('wod'))->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('locked', false)
+                ->where('authenticated', true)
+                ->where('dailyWorkouts.0.workout', 'Member workout'));
+    }
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { router, usePage, useForm } from '@inertiajs/react';
+import { Link, router, usePage, useForm } from '@inertiajs/react';
 
 // ── Passcode gate ─────────────────────────────────────────────────────────────
 
@@ -267,7 +267,7 @@ function DailyWorkoutCard({ item }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function Wod({ locked, classes, dailyWorkouts = [], date }) {
+export default function Wod({ locked, authenticated = false, classes, dailyWorkouts = [], date }) {
     if (locked) return <PasscodeGate />;
 
     return (
@@ -280,13 +280,7 @@ export default function Wod({ locked, classes, dailyWorkouts = [], date }) {
                         </p>
                         <h1 className="text-3xl font-extrabold text-gray-900">Today's WOD</h1>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => router.post(route('wod.logout'))}
-                        className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white"
-                    >
-                        🔒 Lock
-                    </button>
+                    {authenticated ? <Link href={route('schedule')} className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 px-3 py-1.5 rounded-xl border border-gray-200 bg-white">← Back to app</Link> : <button type="button" onClick={() => router.post(route('wod.logout'))} className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white">🔒 Lock</button>}
                 </div>
 
                 {dailyWorkouts.length > 0 ? (

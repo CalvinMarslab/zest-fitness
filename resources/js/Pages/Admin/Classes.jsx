@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { Link, router, useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { parseLocalDT, toLocalInputDT } from '@/utils/date';
 
@@ -511,6 +511,15 @@ export default function Classes({ templates, specials }) {
         <AdminLayout title="Classes">
             {toast && <Toast message={toast} onHide={() => setToast(null)} />}
             {editClass && <EditModal gymClass={editClass} onClose={() => setEditClass(null)} />}
+
+            <div className="mb-6 rounded-2xl bg-gray-900 text-white p-5 flex flex-wrap items-center gap-4">
+                <div className="flex-1 min-w-64">
+                    <p className="text-xs font-black uppercase tracking-widest text-orange-400">Class Workouts</p>
+                    <h2 className="text-xl font-black mt-1">Today’s HYROX & CrossFit workouts</h2>
+                    <p className="text-sm text-gray-400 mt-1">Edit once per class type. All classes of the same type share the workout, and published workouts are visible to members.</p>
+                </div>
+                <Link href="/admin/daily-workouts" className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-3 text-sm font-bold">Manage workouts →</Link>
+            </div>
 
             {/* Weekly schedule (templates) */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">

@@ -40,10 +40,17 @@ const ProfileIcon = ({ active }) => (
     </svg>
 );
 
+const WorkoutIcon = ({ active }) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M13 2L5 14h6l-1 8 9-13h-6V2z" stroke={active ? '#FFF34D' : '#9AA5AE'} strokeWidth="1.8" strokeLinejoin="round"/>
+    </svg>
+);
+
 const NAV_ITEMS = [
     { label: 'Schedule', routeName: 'schedule',    Icon: ScheduleIcon  },
     { label: 'Bookings', routeName: 'my-bookings', Icon: BookingsIcon  },
     { label: 'Appointments', routeName: 'appointments.index', Icon: AppointmentsIcon },
+    { label: 'Workout', routeName: 'wod', Icon: WorkoutIcon },
     { label: 'Profile', routeName: 'profile.edit', Icon: ProfileIcon },
 ];
 

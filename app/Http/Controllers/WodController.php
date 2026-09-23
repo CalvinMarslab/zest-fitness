@@ -14,8 +14,8 @@ class WodController extends Controller
 {
     public function index(): Response
     {
-        if (! session('wod_unlocked')) {
-            return Inertia::render('Wod', ['locked' => true, 'classes' => [], 'dailyWorkouts' => [], 'date' => Carbon::today()->toDateString()]);
+        if (! auth()->check() && ! session('wod_unlocked')) {
+            return Inertia::render('Wod', ['locked' => true, 'authenticated' => false, 'classes' => [], 'dailyWorkouts' => [], 'date' => Carbon::today()->toDateString()]);
         }
 
         $today = Carbon::today();
@@ -36,6 +36,7 @@ class WodController extends Controller
 
         return Inertia::render('Wod', [
             'locked' => false,
+            'authenticated' => auth()->check(),
             'classes' => $classes,
             'dailyWorkouts' => DailyWorkout::whereDate('workout_date', $today)
                 ->where('is_published', true)
