@@ -487,6 +487,7 @@ export default function Classes({ templates, specials, calendarDate, calendarCla
     const [localSpecials, setLocalSpecials]   = useState(specials);
     const [editClass, setEditClass]           = useState(null);
     const [toast, setToast]                   = useState(null);
+    const [scheduleView, setScheduleView]     = useState('calendar');
 
     useEffect(() => { setLocalSpecials(specials); }, [specials]);
 
@@ -531,7 +532,7 @@ export default function Classes({ templates, specials, calendarDate, calendarCla
             {toast && <Toast message={toast} onHide={() => setToast(null)} />}
             {editClass && <EditModal gymClass={editClass} onClose={() => setEditClass(null)} />}
 
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+            <div className="hidden">
                 <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
                     <div className="mr-auto"><p className="text-xs font-black uppercase tracking-widest text-orange-500">Schedule Calendar</p><h2 className="text-lg font-black text-gray-900">{new Date(`${calendarDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2></div>
                     <button onClick={() => shiftCalendarDate(-1)} className="w-10 h-10 rounded-xl bg-gray-100 font-black">←</button>
@@ -561,15 +562,34 @@ export default function Classes({ templates, specials, calendarDate, calendarCla
                 <Link href="/admin/daily-workouts" className="rounded-xl bg-orange-500 hover:bg-orange-600 px-5 py-3 text-sm font-bold">Manage workouts →</Link>
             </div>
 
-            {/* Weekly schedule (templates) */}
+            {/* Main schedule with Calendar / List views */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
-                <div className="px-4 py-3 border-b border-gray-100">
-                    <span className="text-sm font-semibold text-gray-900">Weekly Schedule</span>
-                    <span className="text-xs text-gray-400 ml-2">{templates.length} slots · click a slot to manage</span>
+                <div className="px-4 py-3 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                    <div className="mr-auto"><span className="text-sm font-semibold text-gray-900">Class Calendar</span><span className="text-xs text-gray-400 ml-2">{scheduleView === 'calendar' ? `${templates.length} recurring slots` : 'Daily class list'}</span></div>
+                    <div className="flex rounded-xl bg-gray-100 p-1">
+                        <button onClick={() => setScheduleView('calendar')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${scheduleView === 'calendar' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>Calendar</button>
+                        <button onClick={() => setScheduleView('list')} className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${scheduleView === 'list' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}>List</button>
+                    </div>
                 </div>
-                <div className="p-4">
-                    <WeekView templates={templates} />
-                </div>
+                {scheduleView === 'calendar' ? <div className="p-4"><WeekView templates={templates} /></div> : <div>
+                    <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-3">
+                        <div className="mr-auto"><p className="text-xs font-black uppercase tracking-widest text-orange-500">Daily List</p><h2 className="text-lg font-black text-gray-900">{new Date(`${calendarDate}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</h2></div>
+                        <button onClick={() => shiftCalendarDate(-1)} className="w-10 h-10 rounded-xl bg-gray-100 font-black">←</button>
+                        <input type="date" value={calendarDate} onChange={e => changeCalendarDate(e.target.value)} className="rounded-xl border-gray-300 font-bold" />
+                        <button onClick={() => shiftCalendarDate(1)} className="w-10 h-10 rounded-xl bg-gray-100 font-black">→</button>
+                        <button onClick={() => changeCalendarDate(new Date().toLocaleDateString('en-CA'))} className="px-4 h-10 rounded-xl bg-orange-50 text-orange-600 text-sm font-bold">Today</button>
+                    </div>
+                    {calendarClasses.length === 0 ? <div className="py-12 text-center text-gray-400"><p className="text-3xl">📅</p><p className="mt-2 text-sm font-semibold">No classes on this date</p></div> : <div className="divide-y divide-gray-100">{calendarClasses.map(c => {
+                        const start = parseLocalDT(c.start_time);
+                        const end = c.end_time ? parseLocalDT(c.end_time) : new Date(start.getTime() + 60 * 60 * 1000);
+                        return <button key={c.id} onClick={() => openCalendarClass(c)} className="w-full p-4 flex items-center gap-4 text-left hover:bg-orange-50/50 transition-colors">
+                            <div className="w-20 shrink-0"><p className="font-black text-gray-900">{start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p><p className="text-xs text-gray-400">{end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p></div>
+                            <span className={`w-1.5 h-14 rounded-full ${c.name.toLowerCase().includes('hyrox') ? 'bg-lime-400' : 'bg-orange-500'}`} />
+                            <div className="flex-1 min-w-0"><p className="font-black text-gray-900">{c.name}</p><p className="text-sm text-gray-500">Instructor: {c.coach}{c.location ? ` · ${c.location}` : ''}</p></div>
+                            <div className="text-right"><p className="font-black text-gray-900">{c.confirmed_count}/{c.capacity}</p><p className="text-xs text-gray-400">booked{c.waitlist_count > 0 ? ` · ${c.waitlist_count} waitlist` : ''}</p></div><span className="text-gray-300 text-xl">›</span>
+                        </button>;
+                    })}</div>}
+                </div>}
             </div>
 
             {/* Special one-off classes */}
