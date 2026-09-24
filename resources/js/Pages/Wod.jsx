@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, router, usePage, useForm } from '@inertiajs/react';
+import { router, usePage, useForm } from '@inertiajs/react';
+import AppLayout from '@/Layouts/AppLayout';
 
 // ── Passcode gate ─────────────────────────────────────────────────────────────
 
@@ -270,8 +271,8 @@ function DailyWorkoutCard({ item }) {
 export default function Wod({ locked, authenticated = false, classes, dailyWorkouts = [], date }) {
     if (locked) return <PasscodeGate />;
 
-    return (
-        <div className="min-h-screen" style={{ background: '#f9fafb' }}>
+    const content = (
+        <div className={authenticated ? '' : 'min-h-screen'} style={{ background: '#f9fafb' }}>
             <div className="max-w-xl mx-auto px-4 py-8">
                 <div className="flex items-start justify-between mb-6">
                     <div>
@@ -280,7 +281,7 @@ export default function Wod({ locked, authenticated = false, classes, dailyWorko
                         </p>
                         <h1 className="text-3xl font-extrabold text-gray-900">Today's WOD</h1>
                     </div>
-                    {authenticated ? <Link href={route('schedule')} className="mt-1 flex items-center gap-1.5 text-xs text-gray-500 px-3 py-1.5 rounded-xl border border-gray-200 bg-white">← Back to app</Link> : <button type="button" onClick={() => router.post(route('wod.logout'))} className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white">🔒 Lock</button>}
+                    {!authenticated && <button type="button" onClick={() => router.post(route('wod.logout'))} className="mt-1 flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors px-3 py-1.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white">🔒 Lock</button>}
                 </div>
 
                 {dailyWorkouts.length > 0 ? (
@@ -303,4 +304,6 @@ export default function Wod({ locked, authenticated = false, classes, dailyWorko
             </div>
         </div>
     );
+
+    return authenticated ? <AppLayout active="Workout">{content}</AppLayout> : content;
 }
