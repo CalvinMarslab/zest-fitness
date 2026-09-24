@@ -84,10 +84,17 @@ export default function AppLayout({ active, title, subtitle, children }) {
         : null;
 
     return (
-        <div className="min-h-screen bg-[#CFE0EB]">
+        <div className="min-h-screen bg-[#CFE0EB] pt-[env(safe-area-inset-top)]">
+
+            {/* Solid PWA status-bar safe area (time, battery, Dynamic Island). */}
+            <div
+                className="fixed top-0 inset-x-0 z-50 bg-black"
+                style={{ height: 'env(safe-area-inset-top)' }}
+                aria-hidden="true"
+            />
 
             {/* ── Top bar ── */}
-            <header className="sticky top-0 z-20 bg-[#CFE0EB]/95 backdrop-blur border-b border-[#DDD5C0]">
+            <header className="sticky top-[env(safe-area-inset-top)] z-20 bg-[#CFE0EB]/95 backdrop-blur border-b border-[#DDD5C0]">
                 <div className="max-w-lg mx-auto px-5 h-14 flex items-center justify-between">
                     <Link href={route('schedule')}>
                         <img src="/images/logo.svg" alt="Zest Athletic" className="h-8" />
