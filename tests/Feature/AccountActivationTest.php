@@ -222,8 +222,9 @@ class AccountActivationTest extends TestCase
 
         (new SendAccountActivationEmail($member))->handle();
 
-        $row = \DB::table('password_reset_tokens')->where('email', $member->email)->first();
-        $this->assertNotNull($row, 'Token row should exist');
+        // Job now uses account_setup broker — token is in account_setup_tokens, not password_reset_tokens
+        $row = \DB::table('account_setup_tokens')->where('email', $member->email)->first();
+        $this->assertNotNull($row, 'Token row should exist in account_setup_tokens');
         // Laravel stores password reset tokens as bcrypt hashes (starts with $2y$)
         $this->assertStringStartsWith('$2', $row->token, 'Token should be stored as a bcrypt hash, not plaintext');
     }
@@ -268,28 +269,29 @@ class AccountActivationTest extends TestCase
 
     // ─── token: single-use, 24h expiry ───────────────────────────────────────
 
-    public function test_token_is_consumed_on_password_reset(): void
+    public function test_activation_token_is_consumed_on_completion(): void
     {
         Mail::fake();
 
         $member = $this->member();
-        $token = Password::broker()->createToken($member);
+        $token = Password::broker('account_setup')->createToken($member);
 
-        $this->post(route('password.store'), [
+        $this->post(route('activation.complete.store'), [
             'token' => $token,
             'email' => $member->email,
             'password' => 'NewPass123!',
             'password_confirmation' => 'NewPass123!',
-        ])->assertRedirect(route('login'));
+        ])->assertRedirect(route('schedule'));
 
-        $status = Password::broker()->tokenExists($member->fresh(), $token);
-        $this->assertFalse($status, 'Token should be consumed after use');
+        $this->assertFalse(
+            Password::broker('account_setup')->tokenExists($member->fresh(), $token),
+            'Activation token should be consumed after use'
+        );
     }
 
-    public function test_token_expiry_config_is_24_hours(): void
+    public function test_account_setup_token_expiry_config_is_24_hours(): void
     {
-        $expire = config('auth.passwords.users.expire');
-        $this->assertEquals(1440, $expire);
+        $this->assertEquals(1440, config('auth.passwords.account_setup.expire'));
     }
 
     // ─── password reset integration ──────────────────────────────────────────
@@ -311,7 +313,30 @@ class AccountActivationTest extends TestCase
         $this->assertFalse($member->fresh()->must_change_password);
     }
 
-    public function test_password_reset_marks_activation_as_activated(): void
+    public function test_activation_complete_marks_activation_as_activated(): void
+    {
+        $member = $this->member();
+        AccountActivationRequest::create(['user_id' => $member->id, 'status' => 'sent']);
+
+        $token = Password::broker('account_setup')->createToken($member);
+
+        $this->post(route('activation.complete.store'), [
+            'token' => $token,
+            'email' => $member->email,
+            'password' => 'NewPass123!',
+            'password_confirmation' => 'NewPass123!',
+        ])->assertRedirect(route('schedule'));
+
+        $this->assertDatabaseHas('account_activation_requests', [
+            'user_id' => $member->id,
+            'status' => 'activated',
+        ]);
+
+        $record = AccountActivationRequest::where('user_id', $member->id)->first();
+        $this->assertNotNull($record->activated_at);
+    }
+
+    public function test_normal_password_reset_also_marks_activation_as_activated(): void
     {
         $member = $this->member();
         AccountActivationRequest::create(['user_id' => $member->id, 'status' => 'sent']);
@@ -329,9 +354,6 @@ class AccountActivationTest extends TestCase
             'user_id' => $member->id,
             'status' => 'activated',
         ]);
-
-        $record = AccountActivationRequest::where('user_id', $member->id)->first();
-        $this->assertNotNull($record->activated_at);
     }
 
     // ─── test email ──────────────────────────────────────────────────────────
@@ -358,5 +380,82 @@ class AccountActivationTest extends TestCase
             ->assertSessionHas('success');
 
         Mail::assertSent(AccountSetupMail::class, fn ($mail) => $mail->hasTo($admin->email));
+    }
+
+    // ─── regression: hotfix ───────────────────────────────────────────────────
+
+    public function test_test_email_does_not_create_token_in_any_table(): void
+    {
+        Mail::fake();
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->post(route('admin.activation.test'), ['email' => $admin->email]);
+
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+        $this->assertDatabaseCount('account_setup_tokens', 0);
+    }
+
+    public function test_users_broker_expiry_is_60_minutes(): void
+    {
+        $this->assertEquals(60, config('auth.passwords.users.expire'));
+    }
+
+    public function test_account_setup_broker_is_isolated_from_users_broker(): void
+    {
+        $member = $this->member();
+
+        // Token created via account_setup broker lands in account_setup_tokens, not password_reset_tokens
+        Password::broker('account_setup')->createToken($member);
+
+        $this->assertDatabaseCount('account_setup_tokens', 1);
+        $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_activation_complete_sets_password_and_logs_in(): void
+    {
+        $member = $this->member();
+        AccountActivationRequest::create(['user_id' => $member->id, 'status' => 'sent']);
+
+        $token = Password::broker('account_setup')->createToken($member);
+
+        $this->post(route('activation.complete.store'), [
+            'token' => $token,
+            'email' => $member->email,
+            'password' => 'NewPass123!',
+            'password_confirmation' => 'NewPass123!',
+        ])->assertRedirect(route('schedule'));
+
+        $this->assertFalse($member->fresh()->must_change_password);
+        $this->assertAuthenticatedAs($member->fresh());
+    }
+
+    public function test_activation_complete_token_is_single_use(): void
+    {
+        $member = $this->member();
+        $token = Password::broker('account_setup')->createToken($member);
+
+        $this->post(route('activation.complete.store'), [
+            'token' => $token,
+            'email' => $member->email,
+            'password' => 'NewPass123!',
+            'password_confirmation' => 'NewPass123!',
+        ]);
+
+        // Token must be consumed — no longer in account_setup_tokens
+        $this->assertDatabaseCount('account_setup_tokens', 0);
+        $this->assertFalse(Password::broker('account_setup')->tokenExists($member->fresh(), $token));
+    }
+
+    public function test_batch_send_capped_at_max_batch_size(): void
+    {
+        Queue::fake();
+        $admin = $this->admin();
+
+        User::factory()->count(505)->create(['role' => 'member', 'is_admin' => false]);
+
+        $this->actingAs($admin)->post(route('admin.activation.batch'));
+
+        Queue::assertPushed(SendAccountActivationEmail::class, 500);
     }
 }

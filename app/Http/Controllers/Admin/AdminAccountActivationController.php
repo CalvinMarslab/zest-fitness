@@ -10,7 +10,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -18,6 +17,8 @@ use Inertia\Response;
 
 class AdminAccountActivationController extends Controller
 {
+    const MAX_BATCH_SIZE = 500;
+
     private function eligibleQuery()
     {
         return User::where('role', 'member')
@@ -99,14 +100,17 @@ class AdminAccountActivationController extends Controller
 
         RateLimiter::hit($key, 300);
 
-        // Use the admin's own account as the token subject, but address the mail to the test recipient
-        $tokenSubject = auth()->user();
-        $token = Password::broker()->createToken($tokenSubject);
+        // Build an inert URL — the token is not stored in any table and will never validate.
+        // This previews the email template without creating any real credential.
+        $inertToken = hash('sha256', Str::random(40).'preview-inert');
+        $previewUrl = route('activation.complete', [
+            'token' => $inertToken,
+            'email' => $data['email'],
+        ]);
 
         $previewUser = User::make(['name' => 'Test Member', 'email' => $data['email']]);
-        $previewUser->email = $data['email'];
 
-        Mail::to($data['email'])->send(new AccountSetupMail($previewUser, $token));
+        Mail::to($data['email'])->send(new AccountSetupMail($previewUser, null, $previewUrl));
 
         return back()->with('success', "Test email sent to {$data['email']}.");
     }
@@ -120,6 +124,7 @@ class AdminAccountActivationController extends Controller
                 ->whereDoesntHave('activationRequest')
                 ->orWhereHas('activationRequest', fn ($q2) => $q2->whereIn('status', ['pending', 'failed']))
             )
+            ->limit(self::MAX_BATCH_SIZE)
             ->get(['id']);
 
         if ($members->isEmpty()) {

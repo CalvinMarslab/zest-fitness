@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AccountActivationCompleteController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -33,6 +34,12 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    Route::get('activate/{token}', [AccountActivationCompleteController::class, 'create'])
+        ->name('activation.complete');
+
+    Route::post('activate', [AccountActivationCompleteController::class, 'store'])
+        ->name('activation.complete.store');
 });
 
 Route::middleware('auth')->group(function () {

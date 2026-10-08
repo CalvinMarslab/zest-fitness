@@ -17,10 +17,11 @@ class AccountSetupMail extends Mailable
 
     public function __construct(
         public readonly User $user,
-        string $token,
+        private ?string $token = null,
+        private ?string $overrideUrl = null,
     ) {
-        $this->resetUrl = route('password.reset', [
-            'token' => $token,
+        $this->resetUrl = $overrideUrl ?? route('activation.complete', [
+            'token' => $this->token,
             'email' => $user->email,
         ]);
     }

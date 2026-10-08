@@ -39,7 +39,7 @@ class SendAccountActivationEmail implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        $token = Password::broker()->createToken($this->user);
+        $token = Password::broker('account_setup')->createToken($this->user);
 
         Mail::to($this->user->email)->send(new AccountSetupMail($this->user, $token));
 
