@@ -1009,6 +1009,7 @@ class ImportVibefam extends Command
                 'credits' => 0,
                 'role' => 'member',
                 'status' => 'active',
+                'must_change_password' => true,
             ]
         );
     }
@@ -1029,6 +1030,7 @@ class ImportVibefam extends Command
                 'credits' => 0,
                 'role' => 'member',
                 'status' => 'active',
+                'must_change_password' => true,
             ]
         );
     }

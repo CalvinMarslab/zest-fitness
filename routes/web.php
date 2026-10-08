@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminPackageController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Coach\CoachClassController;
@@ -49,6 +50,12 @@ Route::get('/dashboard', function () {
 
     return redirect()->route('schedule');
 })->middleware(['auth'])->name('dashboard');
+
+// ── Force password change — reachable even while must_change_password=true ───
+Route::middleware('auth')->group(function () {
+    Route::get('/password/change', [ForcePasswordChangeController::class, 'show'])->name('password.change');
+    Route::post('/password/change', [ForcePasswordChangeController::class, 'update'])->name('password.change.update');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

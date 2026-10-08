@@ -31,6 +31,13 @@ class AuthController extends Controller
         }
 
         $user = Auth::user();
+
+        if ($user->must_change_password) {
+            throw ValidationException::withMessages([
+                'email' => ['Password change required. Log in via the web app to set a new password before using the API.'],
+            ]);
+        }
+
         $token = $user->createToken($data['device_name'])->plainTextToken;
 
         return response()->json(['token' => $token]);

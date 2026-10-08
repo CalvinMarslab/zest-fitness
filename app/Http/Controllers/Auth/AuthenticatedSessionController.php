@@ -33,7 +33,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        $home = $request->user()->is_admin
+        $user = $request->user();
+
+        if ($user->isMember() && $user->must_change_password) {
+            return redirect()->route('password.change');
+        }
+
+        $home = $user->is_admin
             ? route('admin.dashboard', absolute: false)
             : route('schedule', absolute: false);
 
