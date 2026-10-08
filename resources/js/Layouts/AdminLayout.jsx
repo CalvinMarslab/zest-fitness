@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 
 const NAV = [
-    { label: 'Dashboard', href: '/admin',           icon: '📊' },
-    { label: 'Users',     href: '/admin/users',     icon: '👥' },
-    { label: 'Classes',   href: '/admin/classes',   icon: '🏋️' },
-    { label: 'Bookings',  href: '/admin/bookings',  icon: '📋' },
-    { label: 'Appointments', href: '/admin/appointments', icon: '🗓️' },
-    { label: 'Packages',  href: '/admin/packages',  icon: '📦' },
+    { label: 'Dashboard',   href: '/admin',                  icon: '📊' },
+    { label: 'Users',       href: '/admin/users',            icon: '👥' },
+    { label: 'Activation',  href: '/admin/activation',       icon: '✉️' },
+    { label: 'Classes',     href: '/admin/classes',          icon: '🏋️' },
+    { label: 'Bookings',    href: '/admin/bookings',         icon: '📋' },
+    { label: 'Appointments', href: '/admin/appointments',    icon: '🗓️' },
+    { label: 'Packages',    href: '/admin/packages',         icon: '📦' },
 ];
 
 function HamburgerIcon() {

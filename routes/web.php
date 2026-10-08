@@ -1,18 +1,19 @@
 <?php
 
 use App\Http\Controllers\ActivityController;
-use App\Http\Controllers\Admin\AdminBookingController;
+use App\Http\Controllers\Admin\AdminAccountActivationController;
 use App\Http\Controllers\Admin\AdminAppointmentController;
-use App\Http\Controllers\Admin\AdminDailyWorkoutController;
+use App\Http\Controllers\Admin\AdminBookingController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminCoachController;
+use App\Http\Controllers\Admin\AdminDailyWorkoutController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminPackageController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\BookingController;
-use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\Coach\CoachClassController;
 use App\Http\Controllers\Coach\CoachDashboardController;
 use App\Http\Controllers\MyBookingsController;
@@ -147,6 +148,12 @@ Route::middleware(['auth', 'admin'])
 
         Route::get('/daily-workouts', [AdminDailyWorkoutController::class, 'index'])->name('daily-workouts.index');
         Route::post('/daily-workouts', [AdminDailyWorkoutController::class, 'store'])->name('daily-workouts.store');
+
+        // Account Activation
+        Route::get('/activation', [AdminAccountActivationController::class, 'index'])->name('activation.index');
+        Route::post('/activation/test', [AdminAccountActivationController::class, 'sendTest'])->name('activation.test');
+        Route::post('/activation/batch', [AdminAccountActivationController::class, 'sendBatch'])->name('activation.batch');
+        Route::post('/activation/retry', [AdminAccountActivationController::class, 'retryFailed'])->name('activation.retry');
 
         // Settings
         Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings.index');

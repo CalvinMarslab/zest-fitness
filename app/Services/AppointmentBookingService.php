@@ -30,18 +30,26 @@ class AppointmentBookingService
             }
             $hasOverlap = AppointmentBooking::where('user_id', $user->id)->whereIn('status', ['booked', 'checked_in'])
                 ->whereHas('slot', fn ($q) => $q->where('start_time', '<', $slot->end_time)->where('end_time', '>', $slot->start_time))->exists();
-            if ($hasOverlap) throw ValidationException::withMessages(['appointment' => 'You already have another appointment at this time.']);
+            if ($hasOverlap) {
+                throw ValidationException::withMessages(['appointment' => 'You already have another appointment at this time.']);
+            }
             $coachHasOverlap = AppointmentBooking::whereIn('status', ['booked', 'checked_in'])
                 ->whereHas('slot', fn ($q) => $q->where('coach_id', $slot->coach_id)->where('start_time', '<', $slot->end_time)->where('end_time', '>', $slot->start_time))->exists();
-            if ($coachHasOverlap) throw ValidationException::withMessages(['appointment' => 'This coach already has another appointment at this time.']);
+            if ($coachHasOverlap) {
+                throw ValidationException::withMessages(['appointment' => 'This coach already has another appointment at this time.']);
+            }
 
             $eligiblePackageIds = $service->packages->pluck('id');
             $query = UserSubscription::with('package')->where('user_id', $user->id)
                 ->where('status', 'active')->where('expires_at', '>', $slot->end_time)
                 ->where(fn ($q) => $q->where('is_unlimited', true)->orWhere('credits_remaining', '>=', $service->credits_required));
-            if ($eligiblePackageIds->isNotEmpty()) $query->whereIn('package_id', $eligiblePackageIds);
+            if ($eligiblePackageIds->isNotEmpty()) {
+                $query->whereIn('package_id', $eligiblePackageIds);
+            }
             $subscription = $query->orderBy('expires_at')->lockForUpdate()->first();
-            if (! $subscription) throw ValidationException::withMessages(['appointment' => 'No eligible active package or insufficient credits.']);
+            if (! $subscription) {
+                throw ValidationException::withMessages(['appointment' => 'No eligible active package or insufficient credits.']);
+            }
 
             $charge = $subscription->isUnlimited() ? 0 : $service->credits_required;
             $booking = AppointmentBooking::updateOrCreate(
@@ -54,6 +62,7 @@ class AppointmentBookingService
                 CreditTransaction::create(['user_id' => $user->id, 'user_subscription_id' => $subscription->id, 'type' => 'booking_deduction', 'amount' => -$charge, 'balance_after' => $subscription->credits_remaining, 'reason' => "Appointment booking #{$booking->id}"]);
             }
             $user->syncCreditSummary();
+
             return $booking;
         });
     }
@@ -62,7 +71,9 @@ class AppointmentBookingService
     {
         DB::transaction(function () use ($booking, $refundOverride) {
             $booking = AppointmentBooking::with('slot.service')->lockForUpdate()->findOrFail($booking->id);
-            if (! in_array($booking->status, ['booked', 'checked_in', 'cancelled', 'late_cancel'])) return;
+            if (! in_array($booking->status, ['booked', 'checked_in', 'cancelled', 'late_cancel'])) {
+                return;
+            }
             $cutoff = $booking->slot->service->cancellation_cutoff_hours;
             $policyRefundable = $booking->status === 'booked' && ($cutoff === null || now()->lt($booking->slot->start_time->copy()->subHours($cutoff)));
             $refundable = $refundOverride ?? $policyRefundable;

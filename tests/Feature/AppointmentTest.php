@@ -16,10 +16,15 @@ class AppointmentTest extends TestCase
     use RefreshDatabase;
 
     private User $member;
+
     private User $coach;
+
     private Package $package;
+
     private UserSubscription $subscription;
+
     private AppointmentService $service;
+
     private AppointmentSlot $slot;
 
     protected function setUp(): void

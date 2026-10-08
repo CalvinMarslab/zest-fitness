@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GymClass;
 use App\Models\DailyWorkout;
+use App\Models\GymClass;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
