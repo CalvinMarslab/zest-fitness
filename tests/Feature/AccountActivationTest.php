@@ -7,14 +7,25 @@ use App\Mail\AccountSetupMail;
 use App\Models\AccountActivationRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class AccountActivationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Override the test-environment sync driver so queue guard tests can
+        // control the setting explicitly.
+        Config::set('queue.default', 'database');
+    }
 
     // ─── helpers ──────────────────────────────────────────────────────────────
 
@@ -26,6 +37,13 @@ class AccountActivationTest extends TestCase
     private function member(): User
     {
         return User::factory()->create(['role' => 'member', 'is_admin' => false]);
+    }
+
+    /** POST to sendBatch with server-side confirmation field. */
+    private function postBatch(User $admin, array $extra = []): TestResponse
+    {
+        return $this->actingAs($admin)
+            ->post(route('admin.activation.batch'), array_merge(['confirmed' => true], $extra));
     }
 
     // ─── eligibility ──────────────────────────────────────────────────────────
@@ -112,8 +130,7 @@ class AccountActivationTest extends TestCase
         $activated = $this->member();
         AccountActivationRequest::create(['user_id' => $activated->id, 'status' => 'activated']);
 
-        $this->actingAs($admin)
-            ->post(route('admin.activation.batch'))
+        $this->postBatch($admin)
             ->assertRedirect();
 
         Queue::assertPushed(SendAccountActivationEmail::class, 2);
@@ -129,7 +146,7 @@ class AccountActivationTest extends TestCase
         $admin = $this->admin();
         $member = $this->member();
 
-        $this->actingAs($admin)->post(route('admin.activation.batch'));
+        $this->postBatch($admin);
 
         $this->assertDatabaseHas('account_activation_requests', [
             'user_id' => $member->id,
@@ -145,8 +162,7 @@ class AccountActivationTest extends TestCase
         $activated = $this->member();
         AccountActivationRequest::create(['user_id' => $activated->id, 'status' => 'activated']);
 
-        $this->actingAs($admin)
-            ->post(route('admin.activation.batch'))
+        $this->postBatch($admin)
             ->assertRedirect()
             ->assertSessionHas('error');
     }
@@ -159,7 +175,7 @@ class AccountActivationTest extends TestCase
         $failed = $this->member();
         AccountActivationRequest::create(['user_id' => $failed->id, 'status' => 'failed']);
 
-        $this->actingAs($admin)->post(route('admin.activation.batch'));
+        $this->postBatch($admin);
 
         Queue::assertPushed(SendAccountActivationEmail::class, fn ($job) => $job->user->id === $failed->id);
     }
@@ -454,8 +470,96 @@ class AccountActivationTest extends TestCase
 
         User::factory()->count(505)->create(['role' => 'member', 'is_admin' => false]);
 
-        $this->actingAs($admin)->post(route('admin.activation.batch'));
+        $this->postBatch($admin);
 
         Queue::assertPushed(SendAccountActivationEmail::class, 500);
+    }
+
+    // ─── regression: rollout safety ──────────────────────────────────────────
+
+    public function test_batch_requires_server_side_confirmation(): void
+    {
+        Queue::fake();
+        $admin = $this->admin();
+        $this->member();
+
+        $this->actingAs($admin)
+            ->post(route('admin.activation.batch'))
+            ->assertSessionHasErrors('confirmed');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_retry_respects_max_batch_size(): void
+    {
+        Queue::fake();
+        $admin = $this->admin();
+
+        User::factory()->count(505)->create(['role' => 'member', 'is_admin' => false])
+            ->each(fn ($u) => AccountActivationRequest::create(['user_id' => $u->id, 'status' => 'failed']));
+
+        $this->actingAs($admin)->post(route('admin.activation.retry'));
+
+        Queue::assertPushed(SendAccountActivationEmail::class, 500);
+    }
+
+    public function test_batch_blocked_when_queue_is_synchronous(): void
+    {
+        Queue::fake();
+        Config::set('queue.default', 'sync');
+        $admin = $this->admin();
+        $this->member();
+
+        $this->postBatch($admin)
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_retry_blocked_when_queue_is_synchronous(): void
+    {
+        Queue::fake();
+        Config::set('queue.default', 'sync');
+        $admin = $this->admin();
+        $failed = $this->member();
+        AccountActivationRequest::create(['user_id' => $failed->id, 'status' => 'failed']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.activation.retry'))
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        Queue::assertNothingPushed();
+    }
+
+    public function test_batch_rate_limited_after_first_dispatch(): void
+    {
+        Queue::fake();
+        $admin = $this->admin();
+        $this->member();
+
+        $this->postBatch($admin)->assertSessionHas('success');
+
+        // Second attempt within the window is blocked
+        $this->postBatch($admin)
+            ->assertRedirect()
+            ->assertSessionHas('error');
+    }
+
+    public function test_batch_blocked_when_dispatch_lock_held(): void
+    {
+        Queue::fake();
+        $admin = $this->admin();
+        $this->member();
+
+        // Simulate a concurrent dispatch holding the lock
+        Cache::lock('activation-batch-dispatch', 30)->get();
+
+        $this->postBatch($admin)
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        Queue::assertNothingPushed();
     }
 }

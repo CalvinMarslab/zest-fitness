@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 
 const STATUS_BADGE = {
@@ -28,12 +28,37 @@ function Flash({ flash }) {
     );
 }
 
+function RolloutGuide() {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-2 w-full text-left text-sm font-bold text-blue-800"
+            >
+                <span>ℹ️</span>
+                <span>Staged rollout guide</span>
+                <span className="ml-auto text-xs font-normal text-blue-600">{open ? 'hide' : 'show'}</span>
+            </button>
+            {open && (
+                <div className="mt-3 text-xs text-blue-900 space-y-2 leading-relaxed">
+                    <p><strong>Phase 1 — Send activation emails (this page):</strong> Members keep their current password until they click the activation link. Sending the email changes nothing.</p>
+                    <p><strong>Phase 2 — Enforce on next login (optional, after ~14 days):</strong> For members who have not yet activated, set <code className="bg-blue-100 px-1 rounded">must_change_password = true</code> via the admin User panel. They will be prompted to choose a new password on their next login — no email token required.</p>
+                    <p className="font-semibold">Only apply Phase 2 to members whose status is not "activated".</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function AccountActivation({ stats, members, flash }) {
     const [filterStatus, setFilterStatus] = useState('all');
     const [confirmBatch, setConfirmBatch] = useState(false);
 
     const testForm = useForm({ email: '' });
-    const batchForm = useForm({});
+    // confirmed:true is sent as the server-side authorization token
+    const batchForm = useForm({ confirmed: true });
     const retryForm = useForm({});
 
     const filtered = filterStatus === 'all'
@@ -69,13 +94,15 @@ export default function AccountActivation({ stats, members, flash }) {
                     <StatCard label="Activated" value={stats.activated} accent="bg-green-50 border-green-200" />
                 </div>
 
+                <RolloutGuide />
+
                 {/* Actions */}
                 <div className="grid sm:grid-cols-2 gap-6">
 
                     {/* Test email */}
                     <div className="bg-white rounded-2xl border border-gray-200 p-6">
                         <h2 className="font-bold text-gray-900 mb-1">Send Test Email</h2>
-                        <p className="text-xs text-gray-500 mb-4">Delivers a preview to an admin address before batch sending.</p>
+                        <p className="text-xs text-gray-500 mb-4">Delivers a preview to an admin address. No real token is created.</p>
                         <form onSubmit={submitTest} className="flex gap-2">
                             <input
                                 type="email"
